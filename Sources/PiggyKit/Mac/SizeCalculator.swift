@@ -1,7 +1,7 @@
 import Foundation
 
-enum SizeCalculator {
-    static func calculateSize(of url: URL) -> Int64 {
+public enum SizeCalculator {
+    public static func calculateSize(of url: URL) -> Int64 {
         guard let enumerator = FileManager.default.enumerator(
             at: url,
             includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey],
