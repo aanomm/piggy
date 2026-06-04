@@ -1,9 +1,9 @@
+import Darwin
 import Foundation
 import Security
-import PiggyKit
 
-enum CodeSignChecker {
-    static func isAppleSigned(appPath: URL) -> Bool {
+public enum CodeSignChecker {
+    public static func isAppleSigned(appPath: URL) -> Bool {
         var staticCode: SecStaticCode?
         guard SecStaticCodeCreateWithPath(appPath as CFURL, [], &staticCode) == errSecSuccess,
               let code = staticCode else { return false }
@@ -19,11 +19,11 @@ enum CodeSignChecker {
         return SecStaticCodeCheckValidity(code, SecCSFlags(rawValue: 0), req) == errSecSuccess
     }
 
-    static func detectArchitecture(appPath: URL) -> Architecture {
+    public static func detectArchitecture(appPath: URL) -> Architecture {
         let infoPlistPath = appPath.appendingPathComponent("Contents/Info.plist")
         let infoPlist = NSDictionary(contentsOf: infoPlistPath) as? [String: Any]
         let executableName = infoPlist?["CFBundleExecutable"] as? String
-        var exePath: URL
+        let exePath: URL
         if let name = executableName {
             exePath = appPath.appendingPathComponent("Contents/MacOS").appendingPathComponent(name)
         } else {
@@ -37,19 +37,22 @@ enum CodeSignChecker {
         return parseLipoArch(path: exePath)
     }
 
-    static func isFromAppStore(appPath: URL) -> Bool {
+    public static func isFromAppStore(appPath: URL) -> Bool {
         let receiptPath = appPath.appendingPathComponent("Contents/_MASReceipt")
         return FileManager.default.fileExists(atPath: receiptPath.path)
     }
 
-    static func isQuarantined(appPath: URL) -> Bool {
-        let attrs = try? FileManager.default.attributesOfItem(atPath: appPath.path)
-        return attrs?[.immutable] != nil
+    public static func isQuarantined(appPath: URL) -> Bool {
+        hasExtendedAttribute(named: "com.apple.quarantine", at: appPath)
+    }
+
+    private static func hasExtendedAttribute(named name: String, at url: URL) -> Bool {
+        getxattr(url.path, name, nil, 0, 0, 0) >= 0
     }
 
     private static func parseLipoArch(path: URL) -> Architecture {
         let task = Process()
-        task.launchPath = "/usr/bin/lipo"
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/lipo")
         task.arguments = ["-info", path.path]
 
         let pipe = Pipe()
@@ -88,7 +91,7 @@ enum CodeSignChecker {
 
     private static func fallbackArch(path: URL) -> Architecture {
         let task = Process()
-        task.launchPath = "/usr/bin/file"
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/file")
         task.arguments = [path.path]
         let pipe = Pipe()
         task.standardOutput = pipe

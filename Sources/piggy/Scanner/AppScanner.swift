@@ -88,7 +88,7 @@ enum AppScanner {
         let arch = CodeSignChecker.detectArchitecture(appPath: url)
         let appleSigned = CodeSignChecker.isAppleSigned(appPath: url)
         let storeApp = CodeSignChecker.isFromAppStore(appPath: url)
-        let quarantined = (attrs?[.immutable] as? Bool) ?? false
+        let quarantined = CodeSignChecker.isQuarantined(appPath: url)
 
         let agentCount = bundleID.map { AgentScanner.countForBundleID($0, in: agents) } ?? 0
 
