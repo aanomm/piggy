@@ -1,10 +1,12 @@
 # Piggy media scanning roadmap
 
-Short answer: yes, Piggy can grow into `piggy media`, `piggy images`, and `piggy video`, but it should not start by crawling every personal folder on the Mac.
+Short answer: yes, Piggy can grow into `piggy folders`, `piggy media`, `piggy images`, and `piggy video`, but it should not start by crawling every personal folder on the Mac.
 
 ## Recommended command design
 
 ```bash
+piggy folders ~/Downloads --limit 25
+piggy folders ~/Library --min-size 1gb
 piggy media --path ~/Downloads --limit 25
 piggy images --path ~/Pictures --limit 25
 piggy video --path ~/Movies --limit 25
@@ -19,6 +21,13 @@ Safe defaults:
 - show what was skipped.
 
 ## Technical approach
+
+Folders:
+
+- Use Foundation/FileManager for traversal.
+- Rank child directories by recursive visible contents, not by inode metadata.
+- Report file count and nested folder count beside each folder.
+- Keep `--depth 1` as the default to avoid noisy/double-counted nested rows.
 
 Images:
 
@@ -52,9 +61,10 @@ But semantic analysis would be privacy-sensitive and should be opt-in, local-fir
 
 ## Proposed implementation order
 
-1. Add `PiggyKit/Media` types: `MediaKind`, `MediaItem`, `MediaScanSummary`.
-2. Add tests for extension/UTType classification and ranking.
-3. Add `piggy media --path <dir>` non-destructive scanner.
-4. Add aliases/subcommands `piggy images` and `piggy video` as filtered views.
-5. Add metadata enrichment with ImageIO/AVFoundation.
-6. Add cache and skip reporting.
+1. Keep improving `piggy folders` with skip reporting and optional exports.
+2. Add `PiggyKit/Media` types: `MediaKind`, `MediaItem`, `MediaScanSummary`.
+3. Add tests for extension/UTType classification and ranking.
+4. Add `piggy media --path <dir>` non-destructive scanner.
+5. Add aliases/subcommands `piggy images` and `piggy video` as filtered views.
+6. Add metadata enrichment with ImageIO/AVFoundation.
+7. Add cache and skip reporting.

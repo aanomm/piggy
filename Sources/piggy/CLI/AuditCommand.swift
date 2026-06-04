@@ -56,6 +56,7 @@ struct Audit: ParsableCommand {
         print("")
         print("Safe next commands:")
         print("  piggy mac list --sort size")
+        print("  piggy folders ~/Downloads --limit 25")
         print("  piggy mac list --rosetta")
         print("  piggy mac orphans")
         print("")
