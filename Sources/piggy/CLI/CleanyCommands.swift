@@ -1,5 +1,6 @@
 import Foundation
 import ArgumentParser
+import PiggyKit
 
 nonisolated(unsafe) private var _cachedApps: [AppInfo]?
 
@@ -100,7 +101,7 @@ struct List: ParsableCommand {
     func loadAndSort() -> [AppInfo] {
         var apps = scannedApps(useDiskCache: !fresh)
 
-        let sk = SortKey(rawValue: sort) ?? .size
+        let sk = SortKey(argument: sort) ?? .size
         let ascending = asc
         apps.sort(by: SortKey.comparator(sk, ascending: ascending))
 

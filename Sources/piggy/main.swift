@@ -7,11 +7,21 @@ struct Piggy: ParsableCommand {
         commandName: "piggy",
         abstract: "Sniff out disk hogs — a lean, fast Mac space scout",
         discussion: "Scan all apps, view details, sort by size/date/arch, delete with leftover cleanup.",
-        subcommands: [Snort.self, List.self, Info.self, Delete.self, Search.self, Orphans.self, Export.self],
+        subcommands: [Mac.self, Snort.self, List.self, Info.self, Delete.self, Search.self, Orphans.self, Export.self],
         defaultSubcommand: nil
     )
 
     func run() throws {
         SplashMenu.run()
     }
+}
+
+struct Mac: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "mac",
+        abstract: "Audit and clean macOS application bloat",
+        discussion: "Namespaced Mac commands. Existing top-level commands remain as compatibility aliases.",
+        subcommands: [Snort.self, List.self, Info.self, Delete.self, Search.self, Orphans.self, Export.self],
+        defaultSubcommand: List.self
+    )
 }

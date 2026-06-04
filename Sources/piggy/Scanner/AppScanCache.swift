@@ -1,4 +1,5 @@
 import Foundation
+import PiggyKit
 
 enum AppScanCache {
     private struct Payload: Codable {

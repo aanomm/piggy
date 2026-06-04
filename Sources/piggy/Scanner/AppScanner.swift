@@ -1,4 +1,5 @@
 import Foundation
+import PiggyKit
 
 enum AppScanner {
     static func scan(progress: ((Int, Int, String) -> Void)? = nil) -> [AppInfo] {

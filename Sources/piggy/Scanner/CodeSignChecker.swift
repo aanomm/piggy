@@ -1,5 +1,6 @@
 import Foundation
 import Security
+import PiggyKit
 
 enum CodeSignChecker {
     static func isAppleSigned(appPath: URL) -> Bool {
