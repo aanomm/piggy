@@ -1,7 +1,6 @@
 import Foundation
-import PiggyKit
 
-enum AppScanCache {
+public enum AppScanCache {
     private struct Payload: Codable {
         let version: Int
         let createdAt: Date
@@ -10,21 +9,34 @@ enum AppScanCache {
     }
 
     private static let version = 1
-    private static let maxAge: TimeInterval = 10 * 60
+    private static let defaultMaxAge: TimeInterval = 10 * 60
 
-    static var cacheURL: URL {
+    public static var cacheURL: URL {
         let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory())
         return base.appendingPathComponent("piggy", isDirectory: true).appendingPathComponent("apps-v1.json")
     }
 
-    static func loadIfFresh() -> [AppInfo]? {
-        let url = cacheURL
+    public static func loadIfFresh() -> [AppInfo]? {
+        loadIfFresh(
+            from: cacheURL,
+            sourceDirectoryModificationDates: sourceDirectoryModificationDates(),
+            now: Date(),
+            maxAge: defaultMaxAge
+        )
+    }
+
+    public static func loadIfFresh(
+        from url: URL,
+        sourceDirectoryModificationDates expectedSourceDates: [String: Date],
+        now: Date,
+        maxAge: TimeInterval
+    ) -> [AppInfo]? {
         guard let data = try? Data(contentsOf: url),
               let payload = try? JSONDecoder().decode(Payload.self, from: data),
               payload.version == version,
-              Date().timeIntervalSince(payload.createdAt) <= maxAge,
-              payload.sourceDirectoryModificationDates == sourceDirectoryModificationDates()
+              now.timeIntervalSince(payload.createdAt) <= maxAge,
+              payload.sourceDirectoryModificationDates == expectedSourceDates
         else {
             return nil
         }
@@ -32,12 +44,25 @@ enum AppScanCache {
         return payload.apps
     }
 
-    static func save(_ apps: [AppInfo]) {
-        let url = cacheURL
+    public static func save(_ apps: [AppInfo]) {
+        save(
+            apps,
+            to: cacheURL,
+            sourceDirectoryModificationDates: sourceDirectoryModificationDates(),
+            now: Date()
+        )
+    }
+
+    public static func save(
+        _ apps: [AppInfo],
+        to url: URL,
+        sourceDirectoryModificationDates: [String: Date],
+        now: Date
+    ) {
         let payload = Payload(
             version: version,
-            createdAt: Date(),
-            sourceDirectoryModificationDates: sourceDirectoryModificationDates(),
+            createdAt: now,
+            sourceDirectoryModificationDates: sourceDirectoryModificationDates,
             apps: apps
         )
 
@@ -53,7 +78,7 @@ enum AppScanCache {
         }
     }
 
-    static func clear() {
+    public static func clear() {
         try? FileManager.default.removeItem(at: cacheURL)
     }
 
