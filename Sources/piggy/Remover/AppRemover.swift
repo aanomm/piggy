@@ -12,9 +12,17 @@ enum AppRemover {
     struct DeletionResult {
         let appName: String
         let appSize: Int64
-        let relatedFiles: [RelatedFile]
+        let trashedRelatedFiles: [RelatedFile]
+        let skippedRelatedFiles: [RelatedFile]
         let totalFreed: Int64
         let didTrash: Bool
+        let failureReason: String?
+    }
+
+    struct RelatedDeletionResult {
+        let trashed: [RelatedFile]
+        let skipped: [RelatedFile]
+        let totalFreed: Int64
     }
 
     static func findRelatedFiles(for app: AppInfo) -> [RelatedFile] {
@@ -83,15 +91,30 @@ enum AppRemover {
 
     static func delete(app: AppInfo, includeRelated: Bool) -> DeletionResult {
         let related = findRelatedFiles(for: app)
-        var totalFreed: Int64 = app.size
-        for rf in related { totalFreed += rf.size }
+        let relatedCandidates = related.map { RemovalCandidate(path: $0.path, size: $0.size, category: $0.category) }
+        let plan = RemovalPlanner.plan(app: app, relatedFiles: relatedCandidates, includeRelated: includeRelated)
+        let skipped = plan.skippedRelatedFiles.map(toRelatedFile)
+
+        guard plan.canTrashApp else {
+            return DeletionResult(
+                appName: app.displayName,
+                appSize: app.size,
+                trashedRelatedFiles: [],
+                skippedRelatedFiles: related,
+                totalFreed: 0,
+                didTrash: false,
+                failureReason: plan.appAssessment.reason
+            )
+        }
 
         nonisolated(unsafe) var didTrashMain = false
+        nonisolated(unsafe) var failureReason: String?
         let ws = NSWorkspace.shared
 
         let semaphore = DispatchSemaphore(value: 0)
-        ws.recycle([app.path]) { urls, error in
+        ws.recycle([app.path]) { _, error in
             if let error = error {
+                failureReason = error.localizedDescription
                 fputs("piggy: failed to trash main app: \(error.localizedDescription)\n", stderr)
             } else {
                 didTrashMain = true
@@ -100,11 +123,22 @@ enum AppRemover {
         }
         semaphore.wait()
 
-        if includeRelated {
-            for relatedFile in related {
+        var trashedRelated: [RelatedFile] = []
+        if didTrashMain && includeRelated {
+            for candidate in plan.relatedFilesToTrash {
+                let relatedFile = toRelatedFile(candidate)
                 let sem = DispatchSemaphore(value: 0)
-                ws.recycle([relatedFile.path]) { _, _ in sem.signal() }
+                nonisolated(unsafe) var didTrashRelated = false
+                ws.recycle([relatedFile.path]) { _, error in
+                    if let error = error {
+                        fputs("piggy: skipped related file \(relatedFile.path.path): \(error.localizedDescription)\n", stderr)
+                    } else {
+                        didTrashRelated = true
+                    }
+                    sem.signal()
+                }
                 sem.wait()
+                if didTrashRelated { trashedRelated.append(relatedFile) }
             }
         }
 
@@ -115,18 +149,45 @@ enum AppRemover {
         return DeletionResult(
             appName: app.displayName,
             appSize: app.size,
-            relatedFiles: related,
-            totalFreed: totalFreed,
-            didTrash: didTrashMain
+            trashedRelatedFiles: trashedRelated,
+            skippedRelatedFiles: skipped,
+            totalFreed: didTrashMain ? app.size + trashedRelated.reduce(0) { $0 + $1.size } : 0,
+            didTrash: didTrashMain,
+            failureReason: failureReason
         )
     }
 
-    static func deleteRelatedFiles(_ files: [RelatedFile]) {
+    @discardableResult
+    static func deleteRelatedFiles(_ files: [RelatedFile]) -> RelatedDeletionResult {
         let ws = NSWorkspace.shared
+        var trashed: [RelatedFile] = []
+        var skipped: [RelatedFile] = []
+
         for file in files {
+            let assessment = SafetyClassifier.assess(path: file.path.path)
+            guard assessment.level < .sensitive else {
+                skipped.append(file)
+                continue
+            }
+
             let sem = DispatchSemaphore(value: 0)
-            ws.recycle([file.path]) { _, _ in sem.signal() }
+            nonisolated(unsafe) var didTrash = false
+            ws.recycle([file.path]) { _, _ in
+                didTrash = true
+                sem.signal()
+            }
             sem.wait()
+            if didTrash { trashed.append(file) }
         }
+
+        return RelatedDeletionResult(
+            trashed: trashed,
+            skipped: skipped,
+            totalFreed: trashed.reduce(0) { $0 + $1.size }
+        )
+    }
+
+    private static func toRelatedFile(_ candidate: RemovalCandidate) -> RelatedFile {
+        RelatedFile(path: candidate.path, size: candidate.size, category: candidate.category)
     }
 }

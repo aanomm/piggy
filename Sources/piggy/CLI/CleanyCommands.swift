@@ -308,12 +308,18 @@ struct Delete: ParsableCommand {
         let result = AppRemover.delete(app: info, includeRelated: withRelated)
         if result.didTrash {
             print("Trashed: \(result.appName)")
-            if withRelated && !result.relatedFiles.isEmpty {
-                print("  + \(result.relatedFiles.count) related files")
+            if withRelated && !result.trashedRelatedFiles.isEmpty {
+                print("  + \(result.trashedRelatedFiles.count) related files")
+            }
+            if withRelated && !result.skippedRelatedFiles.isEmpty {
+                print("  skipped \(result.skippedRelatedFiles.count) sensitive/protected related files")
             }
             print("Freed: \(formatBytes(result.totalFreed))")
         } else {
             print("Failed to trash: \(info.displayName)")
+            if let reason = result.failureReason {
+                print("Reason: \(reason)")
+            }
         }
     }
 
@@ -399,8 +405,11 @@ struct Orphans: ParsableCommand {
                 return
             }
             let relatedFiles = orphans.map { AppRemover.RelatedFile(path: $0.path, size: $0.size, category: $0.category) }
-            AppRemover.deleteRelatedFiles(relatedFiles)
-            print("Deleted all orphans. Freed: \(totalStr)")
+            let result = AppRemover.deleteRelatedFiles(relatedFiles)
+            print("Deleted \(result.trashed.count) orphans. Freed: \(formatBytes(result.totalFreed))")
+            if !result.skipped.isEmpty {
+                print("Skipped \(result.skipped.count) sensitive/protected orphans.")
+            }
         }
     }
 
