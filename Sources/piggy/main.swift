@@ -7,7 +7,7 @@ struct Piggy: ParsableCommand {
         commandName: "piggy",
         abstract: "Sniff out disk hogs — a lean, fast Mac space scout",
         discussion: "Scan all apps, view details, sort by size/date/arch, delete with leftover cleanup.",
-        subcommands: [Mac.self, Snort.self, List.self, Info.self, Delete.self, Search.self, Orphans.self, Export.self],
+        subcommands: [Mac.self, Audit.self, Snort.self, List.self, Info.self, Delete.self, Search.self, Orphans.self, Export.self],
         defaultSubcommand: nil
     )
 
@@ -21,7 +21,7 @@ struct Mac: ParsableCommand {
         commandName: "mac",
         abstract: "Audit and clean macOS application bloat",
         discussion: "Namespaced Mac commands. Existing top-level commands remain as compatibility aliases.",
-        subcommands: [Snort.self, List.self, Info.self, Delete.self, Search.self, Orphans.self, Export.self],
+        subcommands: [Audit.self, Snort.self, List.self, Info.self, Delete.self, Search.self, Orphans.self, Export.self],
         defaultSubcommand: List.self
     )
 }

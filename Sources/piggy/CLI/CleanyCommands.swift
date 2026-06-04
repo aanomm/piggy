@@ -4,7 +4,7 @@ import PiggyKit
 
 nonisolated(unsafe) private var _cachedApps: [AppInfo]?
 
-private func scannedApps(useDiskCache: Bool = true) -> [AppInfo] {
+func scannedApps(useDiskCache: Bool = true) -> [AppInfo] {
     if let cached = _cachedApps { return cached }
     if useDiskCache, let cached = AppScanCache.loadIfFresh() {
         _cachedApps = cached
