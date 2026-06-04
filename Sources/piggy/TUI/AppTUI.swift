@@ -6,9 +6,9 @@ import PiggyKit
 // MARK: - ANSI Helpers
 
 private let CSI = "\u{1B}["
-private let BOLD = CSI + "1m"
-private let DIM = CSI + "2m"
-private let RESET = CSI + "0m"
+private let BOLD = TerminalStyle.ansi("1", stdoutIsTTY: true)
+private let DIM = TerminalStyle.ansi("2", stdoutIsTTY: true)
+private let RESET = TerminalStyle.ansi("0", stdoutIsTTY: true)
 private let CLEAR = CSI + "2J"
 private let CURSOR_HOME = CSI + "H"
 private let CURSOR_HIDE = CSI + "?25l"
@@ -16,8 +16,8 @@ private let CURSOR_SHOW = CSI + "?25h"
 private let ALT_SCREEN = CSI + "?1049h"
 private let MAIN_SCREEN = CSI + "?1049l"
 
-private func fg(_ code: Int) -> String { CSI + "38;5;\(code)m" }
-private func bg(_ code: Int) -> String { CSI + "48;5;\(code)m" }
+private func fg(_ code: Int) -> String { TerminalStyle.ansi("38;5;\(code)", stdoutIsTTY: true) }
+private func bg(_ code: Int) -> String { TerminalStyle.ansi("48;5;\(code)", stdoutIsTTY: true) }
 
 private func cursorTo(_ row: Int, _ col: Int) -> String {
     CSI + "\(row);\(col)H"
@@ -135,11 +135,9 @@ enum AppTUI {
             buf += "\r\n"
         }
 
-        let tagline = "\u{1B}[38;5;175m  ~ sniff out disk hogs ~\u{1B}[0m"
-        var tagDisplayLen = 0
-        var ti = tagline.startIndex
-        let tagClean = tagline.replacingOccurrences(of: "\u{1B}[38;5;175m", with: "").replacingOccurrences(of: "\u{1B}[0m", with: "")
-        while ti < tagClean.endIndex { tagDisplayLen += 1; ti = tagClean.index(after: ti) }
+        let tagline = "\(fg(175))  ~ sniff out disk hogs ~\(RESET)"
+        let tagClean = tagline.replacingOccurrences(of: "\u{1B}\\[[0-9;]*[A-Za-z]", with: "", options: .regularExpression)
+        let tagDisplayLen = tagClean.count
         buf += String(repeating: " ", count: max(0, (w - tagDisplayLen) / 2)) + tagline + "\r\n"
 
         write(buf)
@@ -741,7 +739,7 @@ private func csvEscape(_ s: String) -> String {
 private func showHelp() {
     let help = """
     \r\n\u{1B}[2J\u{1B}[H
-    \u{1B}[1mpiggy — Help\u{1B}[0m
+    \(BOLD)piggy — Help\(RESET)
 
     Navigation
       j / ↓              Move down

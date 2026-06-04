@@ -13,6 +13,12 @@ public struct FolderFinding: Equatable {
 }
 
 public enum FolderScanner {
+    private struct FolderMetrics {
+        var totalBytes: Int64 = 0
+        var fileCount: Int = 0
+        var folderCount: Int = 0
+    }
+
     public static func scan(
         root: URL,
         maxDepth: Int = 1,
@@ -20,19 +26,9 @@ public enum FolderScanner {
         minimumBytes: Int64 = 0
     ) -> [FolderFinding] {
         let depthLimit = max(1, maxDepth)
-        let candidates = folderCandidates(under: root, depth: 1, maxDepth: depthLimit, includeHidden: includeHidden)
+        let (_, findings) = scanFolder(root, depth: 0, maxDepth: depthLimit, includeHidden: includeHidden)
 
-        return candidates
-            .map { folder -> FolderFinding in
-                let metrics = folderMetrics(for: folder, includeHidden: includeHidden)
-                return FolderFinding(
-                    url: folder,
-                    name: folder.lastPathComponent,
-                    totalBytes: metrics.totalBytes,
-                    fileCount: metrics.fileCount,
-                    nestedFolderCount: metrics.folderCount
-                )
-            }
+        return findings
             .filter { $0.totalBytes >= minimumBytes }
             .sorted { lhs, rhs in
                 if lhs.totalBytes != rhs.totalBytes { return lhs.totalBytes > rhs.totalBytes }
@@ -43,74 +39,63 @@ public enum FolderScanner {
             }
     }
 
-    private static func folderCandidates(
-        under root: URL,
+    private static func scanFolder(
+        _ folder: URL,
         depth: Int,
         maxDepth: Int,
         includeHidden: Bool
-    ) -> [URL] {
-        guard depth <= maxDepth,
-              let children = try? FileManager.default.contentsOfDirectory(
-                at: root,
-                includingPropertiesForKeys: [.isDirectoryKey, .isHiddenKey, .isSymbolicLinkKey],
-                options: includeHidden ? [] : [.skipsHiddenFiles]
-              ) else { return [] }
-
-        var folders: [URL] = []
-        for child in children {
-            guard isRealDirectory(child, includeHidden: includeHidden) else { continue }
-            folders.append(child)
-            folders.append(contentsOf: folderCandidates(under: child, depth: depth + 1, maxDepth: maxDepth, includeHidden: includeHidden))
-        }
-        return folders
-    }
-
-    private static func folderMetrics(for folder: URL, includeHidden: Bool) -> (totalBytes: Int64, fileCount: Int, folderCount: Int) {
+    ) -> (FolderMetrics, [FolderFinding]) {
         guard let children = try? FileManager.default.contentsOfDirectory(
             at: folder,
             includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey, .isDirectoryKey, .isHiddenKey, .isSymbolicLinkKey],
             options: includeHidden ? [] : [.skipsHiddenFiles]
-        ) else { return (0, 0, 0) }
+        ) else { return (FolderMetrics(), []) }
 
-        var totalBytes: Int64 = 0
-        var fileCount = 0
-        var folderCount = 0
+        var metrics = FolderMetrics()
+        var findings: [FolderFinding] = []
 
         for child in children {
-            if !includeHidden, isHidden(child) { continue }
-            if isSymbolicLink(child) { continue }
+            guard let values = try? child.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey, .isDirectoryKey, .isHiddenKey, .isSymbolicLinkKey]) else {
+                continue
+            }
+            if shouldSkip(child, values: values, includeHidden: includeHidden) { continue }
 
-            let values = try? child.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey, .isDirectoryKey])
-            if values?.isRegularFile == true {
-                totalBytes += Int64(values?.fileSize ?? 0)
-                fileCount += 1
-            } else if values?.isDirectory == true {
-                folderCount += 1
-                let nested = folderMetrics(for: child, includeHidden: includeHidden)
-                totalBytes += nested.totalBytes
-                fileCount += nested.fileCount
-                folderCount += nested.folderCount
+            if values.isRegularFile == true {
+                metrics.totalBytes += Int64(values.fileSize ?? 0)
+                metrics.fileCount += 1
+            } else if values.isDirectory == true {
+                let (childMetrics, childFindings) = scanFolder(
+                    child,
+                    depth: depth + 1,
+                    maxDepth: maxDepth,
+                    includeHidden: includeHidden
+                )
+                metrics.totalBytes += childMetrics.totalBytes
+                metrics.fileCount += childMetrics.fileCount
+                metrics.folderCount += 1 + childMetrics.folderCount
+                findings.append(contentsOf: childFindings)
             }
         }
 
-        return (totalBytes, fileCount, folderCount)
+        if depth > 0, depth <= maxDepth {
+            findings.append(
+                FolderFinding(
+                    url: folder,
+                    name: folder.lastPathComponent,
+                    totalBytes: metrics.totalBytes,
+                    fileCount: metrics.fileCount,
+                    nestedFolderCount: metrics.folderCount
+                )
+            )
+        }
+
+        return (metrics, findings)
     }
 
-    private static func isRealDirectory(_ url: URL, includeHidden: Bool) -> Bool {
-        if !includeHidden, isHidden(url) { return false }
-        if isSymbolicLink(url) { return false }
-        let values = try? url.resourceValues(forKeys: [.isDirectoryKey])
-        return values?.isDirectory == true
-    }
-
-    private static func isHidden(_ url: URL) -> Bool {
+    private static func shouldSkip(_ url: URL, values: URLResourceValues, includeHidden: Bool) -> Bool {
+        if values.isSymbolicLink == true { return true }
+        if includeHidden { return false }
         if url.lastPathComponent.hasPrefix(".") { return true }
-        let values = try? url.resourceValues(forKeys: [.isHiddenKey])
-        return values?.isHidden == true
-    }
-
-    private static func isSymbolicLink(_ url: URL) -> Bool {
-        let values = try? url.resourceValues(forKeys: [.isSymbolicLinkKey])
-        return values?.isSymbolicLink == true
+        return values.isHidden == true
     }
 }

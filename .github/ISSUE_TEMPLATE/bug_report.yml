@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a reproducible Piggy problem
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping make Piggy safer. Please avoid sharing private paths, app names, or personal files unless necessary.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did Piggy do, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Run `piggy ...`
+        2. See ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Piggy version or commit
+      placeholder: "v0.x.x or git SHA"
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "e.g. macOS 15.5"
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety/privacy impact
+      description: Could this expose, delete, corrupt, or misclassify user data?

@@ -1,7 +1,21 @@
 import Foundation
 import ArgumentParser
+import PiggyKit
 
 nonisolated(unsafe) private var _splashTermios: termios?
+
+private func handleSplashInterrupt(_ signalNumber: Int32) {
+    if var t = _splashTermios {
+        t.c_lflag |= tcflag_t(ECHO | ICANON | ISIG | IEXTEN)
+        t.c_iflag |= tcflag_t(IXON | ICRNL | BRKINT | INPCK | ISTRIP)
+        t.c_oflag |= tcflag_t(OPOST)
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &t)
+    }
+    let pink = TerminalStyle.ansi("38;5;211", stdoutIsTTY: true)
+    let reset = TerminalStyle.ansi("0", stdoutIsTTY: true)
+    print("\n  \(pink)Oink!\(reset)\n")
+    exit(0)
+}
 
 private let MENU_ITEMS: [(String, String, String)] = [
     ("1", "Audit",   "read-only Mac bloat/risk summary"),
@@ -16,16 +30,12 @@ private let MENU_ITEMS: [(String, String, String)] = [
 
 enum SplashMenu {
     static func run() {
-        signal(SIGINT) { _ in
-            if var t = _splashTermios {
-                t.c_lflag |= tcflag_t(ECHO | ICANON | ISIG | IEXTEN)
-                t.c_iflag |= tcflag_t(IXON | ICRNL | BRKINT | INPCK | ISTRIP)
-                t.c_oflag |= tcflag_t(OPOST)
-                tcsetattr(STDIN_FILENO, TCSAFLUSH, &t)
-            }
-            print("\n  \u{1B}[38;5;211mOink!\u{1B}[0m\n")
-            exit(0)
+        guard isatty(STDIN_FILENO) != 0, isatty(STDOUT_FILENO) != 0 else {
+            printNonInteractiveHelp()
+            return
         }
+
+        signal(SIGINT, handleSplashInterrupt)
 
         var orig = termios()
         tcgetattr(STDIN_FILENO, &orig)
@@ -87,7 +97,7 @@ enum SplashMenu {
                     return
                 case "q":
                     restoreTerm()
-                    print("  \u{1B}[38;5;211mOink!\u{1B}[0m\n")
+                    print("  \(PINK)Oink!\(RESET)\n")
                     return
                 case "h":
                     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig)
@@ -168,14 +178,14 @@ enum SplashMenu {
                         return
                 case "quit", "exit":
                     restoreTerm()
-                    print("  \u{1B}[38;5;211mOink!\u{1B}[0m\n")
+                    print("  \(PINK)Oink!\(RESET)\n")
                     return
                     case "help", "?":
                         printHelp()
                         waitForEnter()
                         isFirstRender = false
                     default:
-                        let pig = ["(\u{1B}[38;5;211m°\u{1B}[0mo\u{1B}[38;5;211m°\u{1B}[0m)", "(\u{1B}[38;5;211m•\u{1B}[0m˕\u{1B}[38;5;211m•\u{1B}[0m)", "(\u{1B}[38;5;211m⇀\u{1B}[0m↼\u{1B}[38;5;211m⇀\u{1B}[0m)"]
+                        let pig = ["(\(PINK)°\(RESET)o\(PINK)°\(RESET))", "(\(PINK)•\(RESET)˕\(PINK)•\(RESET))", "(\(PINK)⇀\(RESET)↼\(PINK)⇀\(RESET))"]
                         let pigface = pig[Int.random(in: 0..<pig.count)]
                         print("  \(pigface)  Unknown: '\(fullInput)'. Press 1-8 or h for help.\n")
                     }
@@ -246,7 +256,7 @@ enum SplashMenu {
     }
 
     private static func waitForEnter() {
-        print("\n  \u{1B}[38;5;175mPress Enter to return to menu...\u{1B}[0m", terminator: "")
+        print("\n  \(MAUVE)Press Enter to return to menu...\(RESET)", terminator: "")
         fflush(stdout)
         _ = readLine()
     }
@@ -262,18 +272,18 @@ enum SplashMenu {
 
     // MARK: - Rendering
 
-    private static let DIM = "\u{1B}[2m"
-    private static let BOLD = "\u{1B}[1m"
-    private static let RESET = "\u{1B}[0m"
-    private static let BLUE = "\u{1B}[38;5;33m"
-    private static let WHITE = "\u{1B}[38;5;255m"
-    private static let GRAY = "\u{1B}[38;5;240m"
-    private static let PINK = "\u{1B}[38;5;211m"
-    private static let MAUVE = "\u{1B}[38;5;175m"
-    private static let SELECT_BG = "\u{1B}[48;5;53m"
-    private static let SELECT_FG = "\u{1B}[38;5;255m"
-    private static let SEP = "\u{1B}[38;5;238m"
-    private static let BORDER = "\u{1B}[38;5;240m"
+    private static let DIM = TerminalStyle.ansi("2", stdoutIsTTY: true)
+    private static let BOLD = TerminalStyle.ansi("1", stdoutIsTTY: true)
+    private static let RESET = TerminalStyle.ansi("0", stdoutIsTTY: true)
+    private static let BLUE = TerminalStyle.ansi("38;5;33", stdoutIsTTY: true)
+    private static let WHITE = TerminalStyle.ansi("38;5;255", stdoutIsTTY: true)
+    private static let GRAY = TerminalStyle.ansi("38;5;240", stdoutIsTTY: true)
+    private static let PINK = TerminalStyle.ansi("38;5;211", stdoutIsTTY: true)
+    private static let MAUVE = TerminalStyle.ansi("38;5;175", stdoutIsTTY: true)
+    private static let SELECT_BG = TerminalStyle.ansi("48;5;53", stdoutIsTTY: true)
+    private static let SELECT_FG = TerminalStyle.ansi("38;5;255", stdoutIsTTY: true)
+    private static let SEP = TerminalStyle.ansi("38;5;238", stdoutIsTTY: true)
+    private static let BORDER = TerminalStyle.ansi("38;5;240", stdoutIsTTY: true)
 
     private static func render(selectedIndex: Int, isFirstRender: Bool) {
         print(CLEAR + CURSOR_HOME, terminator: "")
@@ -373,11 +383,23 @@ enum SplashMenu {
 
     // MARK: - Help
 
+    private static func printNonInteractiveHelp() {
+        print("Piggy — macOS bloat radar")
+        print("")
+        print("Run a command directly when stdin/stdout is not interactive:")
+        print("  piggy mac audit")
+        print("  piggy folders ~/Downloads --limit 25")
+        print("  piggy mac list --sort size")
+        print("  piggy mac orphans")
+        print("")
+        print("Use `piggy --help` for the full command list.")
+    }
+
     private static func printHelp() {
         print("")
-        print("  \u{1B}[1mpiggy — sniff out disk hogs\u{1B}[0m")
+        print("  \(BOLD)piggy — sniff out disk hogs\(RESET)")
         print("")
-        print("  \u{1B}[38;5;211mCommands:\u{1B}[0m")
+        print("  \(PINK)Commands:\(RESET)")
         print("    piggy audit         Read-only Mac app bloat/risk summary")
         print("    piggy folders       Rank folders by size with file counts")
         print("    piggy folders ~/Downloads --limit 25")
@@ -395,8 +417,8 @@ enum SplashMenu {
         print("    piggy               Open this menu")
         print("    piggy --help        Full help with all flags")
         print("")
-        print("  \u{1B}[38;5;211mSort keys:\u{1B}[0m size, name, created, modified, used, arch, version, store, agents")
-        print("  \u{1B}[38;5;211mExamples:\u{1B}[0m")
+        print("  \(PINK)Sort keys:\(RESET) size, name, created, modified, used, arch, version, store, agents")
+        print("  \(PINK)Examples:\(RESET)")
         print("    piggy snort big                    Biggest apps first")
         print("    piggy snort new                    Newest installed apps first")
         print("    piggy snort new --fresh            Rescan before sorting")

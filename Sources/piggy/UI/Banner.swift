@@ -1,15 +1,16 @@
 import Foundation
 import Darwin
+import PiggyKit
 
 // MARK: - Piggy Banner
 
 enum Banner {
-    private static let pink = "\u{1B}[38;5;211m"
-    private static let blush = "\u{1B}[38;5;218m"
-    private static let mauve = "\u{1B}[38;5;175m"
-    private static let dim = "\u{1B}[38;5;238m"
-    private static let bold = "\u{1B}[1m"
-    private static let reset = "\u{1B}[0m"
+    private static let pink = TerminalStyle.ansi("38;5;211", stdoutIsTTY: isatty(STDOUT_FILENO) != 0)
+    private static let blush = TerminalStyle.ansi("38;5;218", stdoutIsTTY: isatty(STDOUT_FILENO) != 0)
+    private static let mauve = TerminalStyle.ansi("38;5;175", stdoutIsTTY: isatty(STDOUT_FILENO) != 0)
+    private static let dim = TerminalStyle.ansi("38;5;238", stdoutIsTTY: isatty(STDOUT_FILENO) != 0)
+    private static let bold = TerminalStyle.ansi("1", stdoutIsTTY: isatty(STDOUT_FILENO) != 0)
+    private static let reset = TerminalStyle.ansi("0", stdoutIsTTY: isatty(STDOUT_FILENO) != 0)
 
     static let art = #"""
 \#(dim)╭────────────────────────────────────────────────────────────────────────╮
@@ -85,12 +86,12 @@ enum Banner {
 // MARK: - Animated Scan Scene
 
 enum Spinner {
-    private static let pink = "\u{1B}[38;5;211m"
-    private static let blush = "\u{1B}[38;5;218m"
-    private static let mauve = "\u{1B}[38;5;175m"
-    private static let dim = "\u{1B}[38;5;238m"
-    private static let bold = "\u{1B}[1m"
-    private static let reset = "\u{1B}[0m"
+    private static let pink = TerminalStyle.ansi("38;5;211", stdoutIsTTY: isatty(STDOUT_FILENO) != 0)
+    private static let blush = TerminalStyle.ansi("38;5;218", stdoutIsTTY: isatty(STDOUT_FILENO) != 0)
+    private static let mauve = TerminalStyle.ansi("38;5;175", stdoutIsTTY: isatty(STDOUT_FILENO) != 0)
+    private static let dim = TerminalStyle.ansi("38;5;238", stdoutIsTTY: isatty(STDOUT_FILENO) != 0)
+    private static let bold = TerminalStyle.ansi("1", stdoutIsTTY: isatty(STDOUT_FILENO) != 0)
+    private static let reset = TerminalStyle.ansi("0", stdoutIsTTY: isatty(STDOUT_FILENO) != 0)
 
     private static let compactFaces = ["( . . )", "( o o )", "( O O )", "( - - )"]
 

@@ -8,7 +8,9 @@ Piggy is pre-1.0. Security fixes are applied to the main development branch unti
 
 ## Reporting a vulnerability
 
-Until the public repository is finalized, report issues privately to the maintainer. After publication, this file should be updated with a private security contact or GitHub private vulnerability reporting.
+Please use GitHub private vulnerability reporting for the public repository:
+
+<https://github.com/aanomm/piggy/security/advisories/new>
 
 Please include:
 

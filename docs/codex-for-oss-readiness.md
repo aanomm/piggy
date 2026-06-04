@@ -14,19 +14,19 @@ Source reviewed: <https://developers.openai.com/community/codex-for-oss>
 
 Strengths:
 
-- Native Swift CLI with a small, understandable codebase.
+- Public Swift CLI prepared for open-source submission.
+- MIT-licensed codebase with CI, README, contribution guide, security policy, and issue templates.
+- Native Swift package with a small, understandable architecture.
 - Real test suite around scanner, size, safety, cache, audit, and removal-planning logic.
-- Clear safety angle: local filesystem cleanup, protected locations, background agents, quarantine, and destructive-action risk.
+- Clear safety angle: local filesystem cleanup, protected locations, background agents, quarantine, symlink handling, and destructive-action risk.
 - Obvious Codex use cases: PR review, test generation, release checklists, issue triage, security review, and docs automation.
 
-Current weaknesses before applying:
+Current weaknesses to be transparent about:
 
-- Repository needs to be public.
-- Maintainer must choose an open-source license.
-- No release artifacts or Homebrew install path yet.
-- No public usage/adoption signal yet.
-- CI should run on every pull request.
-- Issue templates and security reporting should be completed after the GitHub repo exists.
+- No tagged public release yet.
+- No Homebrew install path yet.
+- Adoption signal will start small because the repository is newly public.
+- Codex Security access would be especially useful because Piggy handles local filesystem cleanup and path safety.
 
 ## Recommended application positioning
 
@@ -45,11 +45,17 @@ Suggested angle:
 
 ## Pre-application checklist
 
-- [ ] Public GitHub repository.
-- [ ] Open-source license chosen and committed.
-- [ ] README explains install, safety model, examples, and roadmap.
-- [ ] CI workflow green on default branch.
-- [ ] `SECURITY.md` has real private reporting path or GitHub private vulnerability reporting enabled.
-- [ ] Contribution guide explains tests and safety rules.
-- [ ] At least one tagged release or clear install command.
-- [ ] Application narrative explains why Piggy is an OSS maintenance/security project worthy of Codex support.
+- [x] Public GitHub repository.
+- [x] Open-source license chosen and committed.
+- [x] README explains install, safety model, examples, and roadmap.
+- [x] CI workflow exists for pull requests and default branch pushes.
+- [x] `SECURITY.md` points to GitHub private vulnerability reporting.
+- [x] Contribution guide explains tests and safety rules.
+- [ ] First tagged release or Homebrew install path.
+- [x] Application narrative explains why Piggy is an OSS maintenance/security project worthy of Codex support.
+
+## Short submission blurb
+
+Piggy is a safety-first native macOS CLI for auditing application bloat, stale binaries, background agents, orphaned support files, and folder-level disk usage without normalizing reckless deletion. It is intentionally non-destructive by default, has tests around filesystem safety and removal planning, and is a strong fit for Codex-assisted maintenance because every feature touches areas where review quality matters: path handling, symlink behavior, protected locations, privacy-sensitive scans, and destructive cleanup UX.
+
+We plan to use Codex for pull request review, security hardening, regression-test generation, release checklists, and issue triage so Piggy can grow into a trustworthy open-source macOS maintenance tool rather than another opaque “cleaner.”

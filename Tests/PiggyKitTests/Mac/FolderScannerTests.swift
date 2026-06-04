@@ -59,6 +59,40 @@ final class FolderScannerTests: XCTestCase {
         XCTAssertEqual(folders.map(\.name), ["Large"])
     }
 
+    func testScanCanIncludeHiddenFilesAndFoldersWhenRequested() throws {
+        let root = try makeTemporaryDirectory()
+        let visible = try makeFolder(named: "Visible", in: root)
+        try writeBytes(7, to: visible.appendingPathComponent("visible.bin"))
+        try writeBytes(13, to: visible.appendingPathComponent(".hidden.bin"))
+        let hiddenFolder = try makeFolder(named: ".Secret", in: root)
+        try writeBytes(19, to: hiddenFolder.appendingPathComponent("secret.bin"))
+
+        let folders = FolderScanner.scan(root: root, maxDepth: 1, includeHidden: true)
+
+        XCTAssertEqual(folders.map(\.name), ["Visible", ".Secret"])
+        XCTAssertEqual(folders.map(\.totalBytes), [20, 19])
+        XCTAssertEqual(folders.first(where: { $0.name == "Visible" })?.fileCount, 2)
+    }
+
+    func testScanDoesNotFollowSymbolicLinksOutsideTheRoot() throws {
+        let root = try makeTemporaryDirectory()
+        let folder = try makeFolder(named: "Safe", in: root)
+        try writeBytes(5, to: folder.appendingPathComponent("safe.bin"))
+
+        let outside = try makeTemporaryDirectory()
+        try writeBytes(1_000, to: outside.appendingPathComponent("outside.bin"))
+        try FileManager.default.createSymbolicLink(
+            at: folder.appendingPathComponent("outside-link"),
+            withDestinationURL: outside
+        )
+
+        let folders = FolderScanner.scan(root: root, maxDepth: 1, includeHidden: true)
+
+        XCTAssertEqual(folders.map(\.name), ["Safe"])
+        XCTAssertEqual(folders.first?.totalBytes, 5)
+        XCTAssertEqual(folders.first?.fileCount, 1)
+    }
+
     private func makeTemporaryDirectory() throws -> URL {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("PiggyFolderScannerTests")

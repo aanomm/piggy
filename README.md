@@ -113,6 +113,22 @@ swift build -c release
 
 The core scanner and safety logic live in `PiggyKit` so behavior can be tested independently from the terminal UI.
 
+Useful project docs:
+
+- [`docs/architecture.md`](docs/architecture.md) — package layout, safety boundaries, and roadmap.
+- [`docs/performance.md`](docs/performance.md) — local benchmark fixture and optimization notes.
+- [`docs/terminal-design.md`](docs/terminal-design.md) — CLI design/accessibility principles.
+- [`docs/codex-for-oss-readiness.md`](docs/codex-for-oss-readiness.md) — Codex for Open Source submission notes.
+
+## Accessibility and terminal output
+
+Piggy treats terminal output as UI:
+
+- color is disabled automatically when stdout is not a TTY;
+- `NO_COLOR=1` disables ANSI color;
+- `PIGGY_COLOR=always` or `PIGGY_COLOR=never` can override color behavior;
+- scan animation is skipped for non-interactive output so logs stay clean.
+
 ## Safety model
 
 Piggy treats cleanup as a safety problem, not just a filesystem operation.
@@ -129,10 +145,9 @@ See [`SECURITY.md`](SECURITY.md) for vulnerability reporting and security postur
 
 Near-term quality gates:
 
-- public GitHub repository with license selected by the maintainer;
-- CI required on pull requests;
+- public GitHub repository with CI required on pull requests;
+- first tagged release artifact;
 - installation docs via Homebrew or signed release artifact;
-- structured issue templates;
 - media scanning commands behind privacy-safe, opt-in directory scopes.
 
 Media roadmap:
@@ -151,4 +166,4 @@ See [`docs/codex-for-oss-readiness.md`](docs/codex-for-oss-readiness.md).
 
 ## License
 
-License TBD by the maintainer before public OSS submission.
+Piggy is released under the [MIT License](LICENSE).
