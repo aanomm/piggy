@@ -371,7 +371,8 @@ private func renderDetailPane(_ app: AppInfo, state: TUIState, term: TermState) 
     var lines: [String] = []
     lines.append(fg(15) + BOLD + "  " + app.displayName + RESET)
 
-    lines.append(fg(COLOR_DETAIL_FG) + dimPrefix("  Path:", w) + RESET + fg(15) + "    \(app.path.path)".prefix(w - 10) + RESET)
+    let pathText = String("    \(app.path.path)".prefix(max(0, w - 10)))
+    lines.append(fg(COLOR_DETAIL_FG) + dimPrefix("  Path:", w) + RESET + fg(15) + pathText + RESET)
     if let bid = app.bundleIdentifier {
         lines.append(fg(COLOR_DETAIL_FG) + dimPrefix("  Bundle:", w) + RESET + "   \(bid)")
     }
@@ -404,7 +405,8 @@ private func renderDetailPane(_ app: AppInfo, state: TUIState, term: TermState) 
     }
     if let purpose = app.purpose {
         lines.append("")
-        lines.append(fg(COLOR_DETAIL_FG) + "  \(purpose)".prefix(w - 2) + RESET)
+        let purposeText = String("  \(purpose)".prefix(max(0, w - 2)))
+        lines.append(fg(COLOR_DETAIL_FG) + purposeText + RESET)
     }
 
     return lines.joined(separator: "\r\n")
