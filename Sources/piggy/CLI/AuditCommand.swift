@@ -23,15 +23,13 @@ struct Audit: ParsableCommand {
         print("")
         print("🐷 Piggy Mac Audit")
         print("──────────────────")
-        print("Apps:        \(summary.totalApps)")
-        print("Disk:        \(ByteFormat.string(summary.totalBytes))")
-        print("Apple:       \(summary.appleSignedApps)")
-        print("3rd party:   \(summary.thirdPartyApps)")
-        print("App Store:   \(summary.appStoreApps)")
-        print("Rosetta:     \(summary.rosettaApps)")
-        print("Unknown:     \(summary.unknownArchitectureApps)")
-        print("Quarantine:  \(summary.quarantinedApps)")
-        print("Agents:      \(summary.appsWithAgents)")
+        print("Scope: non-destructive scan of macOS .app bundles")
+        print("Disk:  \(summary.diskUsageContext)")
+        print("")
+        for row in summary.metricRows {
+            let label = row.label.padding(toLength: 29, withPad: " ", startingAt: 0)
+            print("\(label) \(row.value)")
+        }
 
         if !summary.largestApps.isEmpty {
             print("")

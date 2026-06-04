@@ -13,20 +13,21 @@ enum Banner {
 
     static let art = #"""
 \#(dim)╭────────────────────────────────────────────────────────────────────────╮
-\#(pink)│ ██████╗ ██╗ ██████╗  ██████╗ ██╗   ██╗                                │
-\#(pink)│ ██╔══██╗██║██╔════╝ ██╔════╝ ╚██╗ ██╔╝                                │
-\#(pink)│ ██████╔╝██║██║  ███╗██║  ███╗ ╚████╔╝                                 │
-\#(pink)│ ██╔═══╝ ██║██║   ██║██║   ██║  ╚██╔╝                                  │
-\#(pink)│ ██║     ██║╚██████╔╝╚██████╔╝   ██║                                   │
-\#(pink)│ ╚═╝     ╚═╝ ╚═════╝  ╚═════╝    ╚═╝                                   │
+\#(pink)│  ██████╗ ██╗ ██████╗  ██████╗ ██╗   ██╗   \#(blush)macOS bloat radar\#(dim)            │
+\#(pink)│  ██╔══██╗██║██╔════╝ ██╔════╝ ╚██╗ ██╔╝   \#(mauve)apps • agents • crumbs\#(dim)       │
+\#(pink)│  ██████╔╝██║██║  ███╗██║  ███╗ ╚████╔╝                                 │
+\#(pink)│  ██╔═══╝ ██║██║   ██║██║   ██║  ╚██╔╝                                  │
+\#(pink)│  ██║     ██║╚██████╔╝╚██████╔╝   ██║        \#(bold)\#(pink)SNIFF. SORT. SAFELY CLEAN.\#(reset)\#(dim) │
+\#(pink)│  ╚═╝     ╚═╝ ╚═════╝  ╚═════╝    ╚═╝                                   │
 \#(dim)│                                                                        │
-\#(mauve)│              ▄▄████████████████▄▄                                      │
-\#(mauve)│           ▄██▀  \#(blush)◉\#(mauve)              \#(blush)◉\#(mauve)  ▀██▄       \#(bold)\#(pink)SPACE HOG RADAR\#(reset)\#(dim)      │
-\#(mauve)│          ██        ▄▄▄▄▄▄▄▄        ██      \#(mauve)sniff out disk hogs\#(dim)    │
-\#(mauve)│          ██      ▄█  ▄██▄  █▄      ██                                │
-\#(mauve)│           ▀██▄   █   ▀██▀   █   ▄██▀       \#(blush)● ● ●\#(dim)                    │
-\#(mauve)│              ▀██▄▀█▄▄____▄▄█▀▄██▀                                  │
-\#(mauve)│                 ▀██▄▄▄▄▄▄▄▄██▀                                      │
+\#(mauve)│              .·°¯°·.        \#(dim)╭───────╮\#(mauve)        .·°¯°·.                   │
+\#(mauve)│          ▄▓██████████▓▄     \#(dim)│  GB   │\#(mauve)     ▄▓██████████▓▄               │
+\#(mauve)│        ▄██▀  \#(blush)◖◗\#(mauve)      \#(blush)◖◗\#(mauve)  ▀██▄   \#(dim)╰─┬─┬─╯\#(mauve)   ▄██▀  \#(blush)✦\#(mauve)       ▀██▄           │
+\#(mauve)│       ██      ▄████▄      ██    \#(dim)  │ │\#(mauve)    ██   cache crumbs  ██         │
+\#(mauve)│       ██   ▄▄█  ▐▌  █▄▄   ██    \#(dim)  │ │\#(mauve)    ██   old helpers   ██         │
+\#(mauve)│        ▀██▄ ▀█▄▄▐▌▄▄█▀ ▄██▀     \#(dim)  │ │\#(mauve)     ▀██▄           ▄██▀          │
+\#(mauve)│           ▀▀▓██▄▄▄▄██▓▀▀        \#(dim) ▄┴─┴▄\#(mauve)       ▀▀▓███████▓▀▀             │
+\#(dim)│                    \#(blush)╰─ a tiny terminal truffle hound for your disk ─╯\#(dim)   │
 \#(dim)╰────────────────────────────────────────────────────────────────────────╯\#(reset)
 
 """#
@@ -38,20 +39,20 @@ enum Banner {
 \#(pink) ██╔═══╝ ██║██║   ██║██║   ██║  ╚██╔╝
 \#(pink) ██║     ██║╚██████╔╝╚██████╔╝   ██║
 \#(pink) ╚═╝     ╚═╝ ╚═════╝  ╚═════╝    ╚═╝
-\#(mauve)        ▄▄████████▄▄
-\#(mauve)     ▄██▀ \#(blush)◉\#(mauve)      \#(blush)◉\#(mauve) ▀██▄
-\#(mauve)    ██     ▄▄▄▄▄▄     ██   \#(pink)SPACE HOG RADAR\#(reset)
-\#(mauve)     ▀██▄  █ ▀██▀ █ ▄██▀   \#(mauve)sniff out disk hogs\#(reset)
-\#(mauve)        ▀██▄▄▄▄▄▄██▀
+\#(mauve)       ▄▓████████▓▄      \#(dim)╭────╮\#(reset)
+\#(mauve)     ▄██▀ \#(blush)◖◗\#(mauve)    \#(blush)◖◗\#(mauve) ▀██▄    \#(dim)│ GB │\#(reset)
+\#(mauve)    ██    ▄████▄    ██   \#(pink)macOS bloat radar\#(reset)
+\#(mauve)     ▀██▄ ▀█▐▌█▀ ▄██▀    \#(mauve)sniff • sort • clean safely\#(reset)
+\#(mauve)        ▀▓██▄▄██▓▀
 
 """#
 
     static let micro = #"""
-\#(pink)  PIGGY\#(reset)
-\#(mauve)  ▄████▄
-\#(mauve) ██ \#(blush)◉  ◉\#(mauve) ██
-\#(mauve)  ▀█ ▀▀ █▀   \#(pink)SPACE HOG RADAR\#(reset)
-\#(mauve)    ▀██▀     \#(mauve)sniff out disk hogs\#(reset)
+\#(pink)  PIGGY\#(reset)  \#(dim)macOS bloat radar\#(reset)
+\#(mauve)  ▄▓██▓▄   \#(dim)╭──╮\#(reset)
+\#(mauve) ██ \#(blush)◖◗◖◗\#(mauve) ██  \#(dim)│GB│\#(reset)
+\#(mauve)  ▀█ ▐▌ █▀  \#(pink)sniff • sort • clean safely\#(reset)
+\#(mauve)    ▀██▀
 
 """#
 

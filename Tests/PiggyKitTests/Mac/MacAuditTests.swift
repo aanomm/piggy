@@ -45,6 +45,30 @@ final class MacAuditTests: XCTestCase {
         XCTAssertTrue(summary.insights.contains { $0.title == "Background agents" })
     }
 
+    func testSummaryMetricRowsUseClearHumanLabelsAndDiskContext() {
+        let apps = [
+            makeApp(name: "Apple", size: 10, isAppleSigned: true),
+            makeApp(name: "Indie", size: 20, architecture: .x86_64, isQuarantined: true, agentCount: 1)
+        ]
+
+        let summary = MacAudit.summarize(apps)
+
+        XCTAssertEqual(summary.metricRows.map(\.label), [
+            "Total apps",
+            "Total app disk",
+            "Apple apps",
+            "3rd Party apps",
+            "App Store apps",
+            "Rosetta apps",
+            "32-bit apps",
+            "Unknown architecture",
+            "Quarantined apps",
+            "Apps with background agents"
+        ])
+        XCTAssertEqual(summary.metricRows.map(\.value), ["2", "30 B", "1", "1", "0", "1", "0", "0", "1", "1"])
+        XCTAssertEqual(summary.diskUsageContext, "Combined on-disk size of the scanned .app bundles.")
+    }
+
     private func makeApp(
         name: String,
         size: Int64,

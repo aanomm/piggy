@@ -13,6 +13,30 @@ public struct MacAuditSummary {
     public let appsWithAgents: Int
     public let largestApps: [AppInfo]
     public let insights: [MacAuditInsight]
+
+    public var diskUsageContext: String {
+        "Combined on-disk size of the scanned .app bundles."
+    }
+
+    public var metricRows: [MacAuditMetricRow] {
+        [
+            MacAuditMetricRow(label: "Total apps", value: "\(totalApps)"),
+            MacAuditMetricRow(label: "Total app disk", value: ByteFormat.string(totalBytes)),
+            MacAuditMetricRow(label: "Apple apps", value: "\(appleSignedApps)"),
+            MacAuditMetricRow(label: "3rd Party apps", value: "\(thirdPartyApps)"),
+            MacAuditMetricRow(label: "App Store apps", value: "\(appStoreApps)"),
+            MacAuditMetricRow(label: "Rosetta apps", value: "\(rosettaApps)"),
+            MacAuditMetricRow(label: "32-bit apps", value: "\(dead32BitApps)"),
+            MacAuditMetricRow(label: "Unknown architecture", value: "\(unknownArchitectureApps)"),
+            MacAuditMetricRow(label: "Quarantined apps", value: "\(quarantinedApps)"),
+            MacAuditMetricRow(label: "Apps with background agents", value: "\(appsWithAgents)")
+        ]
+    }
+}
+
+public struct MacAuditMetricRow: Equatable {
+    public let label: String
+    public let value: String
 }
 
 public struct MacAuditInsight: Equatable {

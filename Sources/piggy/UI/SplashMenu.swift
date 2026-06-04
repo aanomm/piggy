@@ -4,12 +4,13 @@ import ArgumentParser
 nonisolated(unsafe) private var _splashTermios: termios?
 
 private let MENU_ITEMS: [(String, String, String)] = [
-    ("1", "Snort",  "list all apps, sorted by size"),
-    ("2", "Sniff",  "search apps by name"),
-    ("3", "Dig",    "deep info on one app"),
-    ("4", "Crumbs", "leftover files from deleted apps"),
-    ("5", "Stash",  "export to CSV/JSON"),
-    ("6", "Pig",    "interactive terminal browser"),
+    ("1", "Audit",  "read-only Mac bloat/risk summary"),
+    ("2", "Snort",  "list all apps, sorted by size"),
+    ("3", "Sniff",  "search apps by name"),
+    ("4", "Dig",    "deep info on one app"),
+    ("5", "Crumbs", "leftover files from deleted apps"),
+    ("6", "Stash",  "export to CSV/JSON"),
+    ("7", "Pig",    "interactive terminal browser"),
 ]
 
 enum SplashMenu {
@@ -72,6 +73,9 @@ enum SplashMenu {
                     if !executeMenuItem(4, termOrig: &orig) { return }
                     isFirstRender = false
                 case "6":
+                    if !executeMenuItem(5, termOrig: &orig) { return }
+                    isFirstRender = false
+                case "7":
                     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig)
                     print("")
                     fflush(stdout)
@@ -93,6 +97,11 @@ enum SplashMenu {
                     guard !fullInput.isEmpty else { continue }
 
                     switch fullInput {
+                    case "audit", "a", "mac audit":
+                        let auditCmd = Audit.parseOrExit([])
+                        try? auditCmd.run()
+                        waitForEnter()
+                        isFirstRender = false
                     case "snort", "snort big", "big", "list", "l":
                         let snortCmd = Snort.parseOrExit([])
                         try? snortCmd.run()
@@ -159,7 +168,7 @@ enum SplashMenu {
                     default:
                         let pig = ["(\u{1B}[38;5;211m°\u{1B}[0mo\u{1B}[38;5;211m°\u{1B}[0m)", "(\u{1B}[38;5;211m•\u{1B}[0m˕\u{1B}[38;5;211m•\u{1B}[0m)", "(\u{1B}[38;5;211m⇀\u{1B}[0m↼\u{1B}[38;5;211m⇀\u{1B}[0m)"]
                         let pigface = pig[Int.random(in: 0..<pig.count)]
-                        print("  \(pigface)  Unknown: '\(fullInput)'. Press 1-6 or h for help.\n")
+                        print("  \(pigface)  Unknown: '\(fullInput)'. Press 1-7 or h for help.\n")
                     }
                 }
             }
@@ -171,11 +180,16 @@ enum SplashMenu {
 
         switch idx {
         case 0:
+            let auditCmd = Audit.parseOrExit([])
+            try? auditCmd.run()
+            waitForEnter()
+            return true
+        case 1:
             let listCmd = Snort.parseOrExit([])
             try? listCmd.run()
             waitForEnter()
             return true
-        case 1:
+        case 2:
             print("  Search query: ", terminator: "")
             fflush(stdout)
             if let query = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !query.isEmpty {
@@ -186,7 +200,7 @@ enum SplashMenu {
                 print("  Cancelled.\n")
             }
             return true
-        case 2:
+        case 3:
             print("  App name or bundle ID: ", terminator: "")
             fflush(stdout)
             if let name = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
@@ -197,17 +211,17 @@ enum SplashMenu {
                 print("  Cancelled.\n")
             }
             return true
-        case 3:
+        case 4:
             let orphansCmd = Orphans.parseOrExit([])
             try? orphansCmd.run()
             waitForEnter()
             return true
-        case 4:
+        case 5:
             let exportCmd = Export.parseOrExit([])
             try? exportCmd.run()
             waitForEnter()
             return true
-        case 5:
+        case 6:
             print("")
             fflush(stdout)
             AppTUI.run()
@@ -275,7 +289,7 @@ enum SplashMenu {
         }
 
         printBoxLine("", width: boxW, pad: pad)
-        printBoxLine("  \(MAUVE)↑↓\(RESET) navigate   \(MAUVE)↵\(RESET) select   \(MAUVE)1-6\(RESET) jump   \(MAUVE)q\(RESET) quit   \(MAUVE)h\(RESET) help", width: boxW, pad: pad)
+        printBoxLine("  \(MAUVE)↑↓\(RESET) navigate   \(MAUVE)↵\(RESET) select   \(MAUVE)1-7\(RESET) jump   \(MAUVE)q\(RESET) quit   \(MAUVE)h\(RESET) help", width: boxW, pad: pad)
         print("\(pad)\(BORDER)╰\(String(repeating: "─", count: boxW))╯\(RESET)")
         print("")
         print("\(pad)\(DIM)type a command or pick a trail:\(RESET) ", terminator: "")
@@ -350,6 +364,7 @@ enum SplashMenu {
         print("  \u{1B}[1mpiggy — sniff out disk hogs\u{1B}[0m")
         print("")
         print("  \u{1B}[38;5;211mCommands:\u{1B}[0m")
+        print("    piggy audit         Read-only Mac app bloat/risk summary")
         print("    piggy snort         List all apps, biggest first")
         print("    piggy snort small   List all apps, smallest first")
         print("    piggy snort new     Newest installed apps first")
