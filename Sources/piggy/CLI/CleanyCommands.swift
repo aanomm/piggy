@@ -12,9 +12,13 @@ func scannedApps(useDiskCache: Bool = true) -> [AppInfo] {
     }
 
     var apps: [AppInfo] = []
-    Spinner.runDuringScan { progress in
-        apps = AppScanner.scan(progress: progress)
+    let indicator = TerminalActivityIndicator(action: "Piggy is sniffing apps", doneLabel: "App sniff complete")
+    indicator.start("looking through your Applications folders")
+    apps = AppScanner.scan { current, total, name in
+        let appName = TerminalActivityIndicator.clipped(name.replacingOccurrences(of: ".app", with: ""), to: 42)
+        indicator.update("\(current)/\(total) · \(appName)")
     }
+    indicator.finish("\(apps.count) apps sniffed")
     _cachedApps = apps
     AppScanCache.save(apps)
     return apps
@@ -23,7 +27,7 @@ func scannedApps(useDiskCache: Bool = true) -> [AppInfo] {
 // MARK: - snort
 
 struct Snort: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "List installed applications by size or install date")
+    static let configuration = CommandConfiguration(abstract: "Show your apps, with the biggest ones first by default")
 
     enum Order: String, ExpressibleByArgument {
         case big
@@ -32,7 +36,7 @@ struct Snort: ParsableCommand {
         case old
     }
 
-    @Argument(help: "Order: big for largest first, small for smallest first, new for newest installed, old for oldest installed")
+    @Argument(help: "Order: big for largest first, small for smallest first, new for newest, old for oldest")
     var order: Order = .big
 
     @Flag(name: .long, help: "Force a fresh app scan and update the cache")
@@ -59,7 +63,7 @@ struct Snort: ParsableCommand {
 // MARK: - list
 
 struct List: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "List all installed applications")
+    static let configuration = CommandConfiguration(abstract: "Show the app pile Piggy found")
 
     @Option(name: .long, help: "Sort key: size, name, created, modified, used, arch, version, store, agents")
     var sort: String = "size"
@@ -91,9 +95,10 @@ struct List: ParsableCommand {
     func run() throws {
         let apps = loadAndSort()
         if apps.isEmpty {
-            print("No apps found.")
+            print("🐽 Piggy did not find any apps to show.")
             return
         }
+        printListIntro(apps)
         printTable(apps)
         printSummary(apps)
     }
@@ -105,12 +110,9 @@ struct List: ParsableCommand {
         let ascending = asc
         apps.sort(by: SortKey.comparator(sk, ascending: ascending))
 
-        if let filterStr = filter?.lowercased(), !filterStr.isEmpty {
-            apps = apps.filter {
-                $0.displayName.lowercased().contains(filterStr) ||
-                ($0.bundleIdentifier?.lowercased().contains(filterStr) ?? false) ||
-                ($0.purpose?.lowercased().contains(filterStr) ?? false)
-            }
+        if let filterStr = filter, !filterStr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let matchedIDs = AppSearch.visibleNameMatchedAppIDs(apps, query: filterStr)
+            apps = apps.filter { matchedIDs.contains($0.id) }
         }
 
         if appleOnly { apps = apps.filter { $0.isAppleSigned } }
@@ -126,31 +128,71 @@ struct List: ParsableCommand {
         let countW = 5
         let nameW = min(apps.map { $0.displayName.count }.max() ?? 20, 30)
         let sizeW = 10
-        let dateW = 10
+        let dateW = 11
         let archW = 7
         let sourceW = 11
         let originW = 10
         let verW = 12
 
-        let header = "  \(formatPadding("#", countW))\(formatPadding("Name", nameW))  \(formatPadding("Size", sizeW))  \(formatPadding("Installed", dateW))  \(formatPadding("Arch", archW))  \(formatPadding("Source", sourceW))  \(formatPadding("Origin", originW))  \(formatPadding("Version", verW))  Agents  Purpose"
+        let header = "  \(formatPadding("#", countW))\(formatPadding("App", nameW))  \(formatPadding("Size", sizeW))  \(formatPadding("Bundle date", dateW))  \(formatPadding("Chip", archW))  \(formatPadding("Scope", sourceW))  \(formatPadding("From", originW))  \(formatPadding("Version", verW))  Helpers  Description"
         let sep = "  " + String(repeating: "─", count: header.count - 2)
-        print(header)
-        print(sep)
+        print(CLITheme.label(header))
+        print(CLITheme.separator(sep))
 
         for (i, app) in apps.enumerated() {
-            let num = "\(i + 1)".padding(toLength: countW, withPad: " ", startingAt: 0)
-            let name = String(app.displayName.prefix(nameW)).padding(toLength: nameW, withPad: " ", startingAt: 0)
-            let size = app.formattedSize.padding(toLength: sizeW, withPad: " ", startingAt: 0)
+            let num = CLITheme.rank("\(i + 1)".padding(toLength: countW, withPad: " ", startingAt: 0), index: i)
+            let name = CLITheme.path(String(app.displayName.prefix(nameW)).padding(toLength: nameW, withPad: " ", startingAt: 0))
+            let size = CLITheme.size(app.formattedSize.padding(toLength: sizeW, withPad: " ", startingAt: 0), bytes: app.size)
             let date = relativeLabel(app.creationDate, width: dateW)
-            let arch = (flagArch(for: app) + app.architecture.shortLabel).padding(toLength: archW, withPad: " ", startingAt: 0)
-            let source = app.sourceLabel.padding(toLength: sourceW, withPad: " ", startingAt: 0)
-            let origin = app.originLabel.padding(toLength: originW, withPad: " ", startingAt: 0)
+            let arch = styledArch(for: app, width: archW)
+            let source = styledSource(app.sourceLabel.padding(toLength: sourceW, withPad: " ", startingAt: 0), app: app)
+            let origin = styledOrigin(app.originLabel.padding(toLength: originW, withPad: " ", startingAt: 0), app: app)
             let version = (app.shortVersion ?? "-").prefix(12).padding(toLength: verW, withPad: " ", startingAt: 0)
-            let agents = "\(app.agentCount)".padding(toLength: 6, withPad: " ", startingAt: 0)
-            let purpose = (app.purpose ?? "-").prefix(35)
+            let agentsRaw = "\(app.agentCount)".padding(toLength: 6, withPad: " ", startingAt: 0)
+            let agents = app.agentCount > 0 ? CLITheme.warning(agentsRaw) : agentsRaw
+            let purpose = ellipsize(app.purpose ?? "-", width: 48)
 
             print("  \(num)\(name)  \(size)  \(date)  \(arch)  \(source)  \(origin)  \(version)  \(agents)\(purpose)")
         }
+    }
+
+    private func printListIntro(_ apps: [AppInfo]) {
+        print("")
+        print(CLITheme.title("🐽 Piggy found your app pile"))
+        print(CLITheme.separator("──────────────────────────"))
+        print("\(CLITheme.purple("•")) Just looking: nothing is moved, edited, or trashed.")
+        print("\(CLITheme.purple("•")) Bigger apps float to the top unless you choose another sort.")
+        print("\(CLITheme.purple("•")) Bundle date is the app bundle file date; updates can make old apps look new.")
+        print("\(CLITheme.purple("•")) Scope tells where it lives: System = macOS, System-wide = /Applications, User = ~/Applications.")
+        print("\(CLITheme.purple("•")) Helpers means little background pieces an app may run.")
+        print("")
+        print("\(CLITheme.label("Showing")) \(CLITheme.gold("\(apps.count)")) apps")
+    }
+
+    private func styledArch(for app: AppInfo, width: Int) -> String {
+        let raw = (flagArch(for: app) + app.architecture.shortLabel).padding(toLength: width, withPad: " ", startingAt: 0)
+        if app.architecture == .i386 { return CLITheme.danger(raw) }
+        if app.architecture == .x86_64 || app.isQuarantined { return CLITheme.warning(raw) }
+        if app.architecture == .arm64 { return CLITheme.green(raw) }
+        return CLITheme.label(raw)
+    }
+
+    private func styledSource(_ source: String, app: AppInfo) -> String {
+        switch app.sourceDir {
+        case .system:
+            return CLITheme.purple(source)
+        case .rootApp:
+            return app.isAppleSigned ? CLITheme.green(source) : CLITheme.blue(source)
+        case .userApp:
+            return CLITheme.gold(source)
+        }
+    }
+
+    private func styledOrigin(_ origin: String, app: AppInfo) -> String {
+        if app.isQuarantined { return CLITheme.warning(origin) }
+        if app.isFromAppStore { return CLITheme.green(origin) }
+        if app.isAppleSigned { return CLITheme.purple(origin) }
+        return CLITheme.blue(origin)
     }
 
     private func flagArch(for app: AppInfo) -> String {
@@ -162,6 +204,12 @@ struct List: ParsableCommand {
 
     private func formatPadding(_ s: String, _ w: Int) -> String {
         s.padding(toLength: w, withPad: " ", startingAt: 0)
+    }
+
+    private func ellipsize(_ text: String, width: Int) -> String {
+        guard width > 1 else { return String(text.prefix(max(0, width))) }
+        guard text.count > width else { return text }
+        return String(text.prefix(width - 1)) + "…"
     }
 
     private func printSummary(_ apps: [AppInfo]) {
@@ -177,15 +225,15 @@ struct List: ParsableCommand {
             return String(format: "%.1f MB", Double(absSize) / 1_048_576)
         }()
         print("")
-        print("\(apps.count) apps (\(totalStr)) | Apple: \(appleCount) | 3rd Party: \(thirdCount) | Rosetta: \(rosettaCount) | 32-bit: \(deadCount)")
-        print("Legend: ! = 32-bit, R = Rosetta/x86_64, ~ = quarantined")
+        print("\(CLITheme.gold("\(apps.count) apps")) \(CLITheme.dim("(\(totalStr))")) \(CLITheme.dim("|")) \(CLITheme.label("Apple-made:")) \(CLITheme.green("\(appleCount)")) \(CLITheme.dim("|")) \(CLITheme.label("Other:")) \(CLITheme.blue("\(thirdCount)")) \(CLITheme.dim("|")) \(CLITheme.label("Older Intel-style:")) \(CLITheme.warning("\(rosettaCount)")) \(CLITheme.dim("|")) \(CLITheme.label("Very old:")) \(CLITheme.danger("\(deadCount)"))")
+        print("\(CLITheme.label("Tiny flags:")) \(CLITheme.danger("!")) = very old, \(CLITheme.warning("R")) = older Intel-style, \(CLITheme.warning("~")) = downloaded app to check")
     }
 }
 
 // MARK: - info
 
 struct Info: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Show detailed info for an app")
+    static let configuration = CommandConfiguration(abstract: "Ask Piggy to explain one app")
 
     @Argument(help: "App name or bundle identifier")
     var app: String
@@ -193,7 +241,7 @@ struct Info: ParsableCommand {
     func run() throws {
         let apps = scannedApps()
         guard let info = findApp(in: apps) else {
-            print("App not found: \(app)")
+            print("🐽 Piggy could not sniff out an app named '\(app)'.")
             throw ExitCode.failure
         }
         printInfo(info)
@@ -214,38 +262,52 @@ struct Info: ParsableCommand {
 
     private func printInfo(_ info: AppInfo) {
         print("")
-        print("  \(info.displayName)")
-        print("  " + String(repeating: "─", count: min(info.displayName.count + 10, 60)))
-        print("  Path:             \(info.path.path)")
-        if let bid = info.bundleIdentifier { print("  Bundle ID:        \(bid)") }
-        if let sv = info.shortVersion { print("  Version:          \(sv)") }
-        if let bv = info.bundleVersion { print("  Build:            \(bv)") }
-        if let minOS = info.minOSVersion { print("  Min macOS:        \(minOS)") }
-        print("  Size:             \(info.formattedSize)")
-        print("  Architecture:     \(info.architecture.label)")
-        print("  Origin:           \(info.originLabel)")
-        print("  Code Signed:      Apple: \(info.isAppleSigned ? "yes" : "no")")
-        if info.isFromAppStore { print("  App Store:        yes") }
-        if info.isQuarantined { print("  Quarantined:      yes (unverified)") }
-        if let cd = info.creationDate { print("  Installed:        \(relativeLabel(cd))") }
-        if let md = info.modificationDate { print("  Modified:         \(relativeLabel(md))") }
-        if let lud = info.lastUsedDate { print("  Last Used:        \(relativeLabel(lud))") }
-        if info.agentCount > 0 { print("  Background Agents: \(info.agentCount)") }
-        if let purpose = info.purpose { print("  Purpose:          \(purpose)") }
+        print("  \(CLITheme.title("🐽 Piggy notes for \(info.displayName)"))")
+        print("  " + CLITheme.separator(String(repeating: "─", count: min(info.displayName.count + 10, 60))))
+        print("  \(CLITheme.label("Where it lives:"))   \(CLITheme.path(info.path.path))")
+        if let bid = info.bundleIdentifier { print("  \(CLITheme.label("Mac app ID:"))       \(bid)") }
+        if let sv = info.shortVersion { print("  \(CLITheme.label("Version:"))          \(CLITheme.gold(sv))") }
+        if let bv = info.bundleVersion { print("  \(CLITheme.label("Build:"))            \(bv)") }
+        if let minOS = info.minOSVersion { print("  \(CLITheme.label("Needs macOS:"))      \(minOS) or newer") }
+        print("  \(CLITheme.label("Space it uses:"))    \(CLITheme.size(info.formattedSize, bytes: info.size))")
+        print("  \(CLITheme.label("Chip type:"))        \(styledArchLabel(for: info))")
+        print("  \(CLITheme.label("Came from:"))        \(styledOriginLabel(for: info))")
+        print("  \(CLITheme.label("Apple trust check:")) \(info.isAppleSigned ? CLITheme.green("passed") : CLITheme.warning("not Apple-signed"))")
+        if info.isFromAppStore { print("  \(CLITheme.label("App Store:"))        \(CLITheme.green("yes"))") }
+        if info.isQuarantined { print("  \(CLITheme.warning("Downloaded flag:"))   still attached, so be careful") }
+        if let cd = info.creationDate { print("  \(CLITheme.label("Bundle date:"))     \(relativeLabel(cd))") }
+        if let md = info.modificationDate { print("  \(CLITheme.label("Updated:"))          \(relativeLabel(md))") }
+        if let lud = info.lastUsedDate { print("  \(CLITheme.label("Last opened:"))      \(relativeLabel(lud))") }
+        if info.agentCount > 0 { print("  \(CLITheme.warning("Background helpers:")) \(CLITheme.warning("\(info.agentCount)"))") }
+        if let purpose = info.purpose { print("  \(CLITheme.label("What it is:"))        \(purpose)") }
 
-        let related = AppRemover.findRelatedFiles(for: info)
+        let related = findRelatedFilesWithActivity(for: info)
         if !related.isEmpty {
             print("")
-            print("  Related files:")
+            print("  \(CLITheme.section("Related app crumbs:"))")
             var relTotal: Int64 = 0
             for rf in related {
                 let sz = formatBytes(rf.size)
-                print("    [\(rf.category)] \(rf.path.lastPathComponent)  \(sz)")
+                print("    \(CLITheme.gold("[\(rf.category)]")) \(CLITheme.path(rf.path.lastPathComponent))  \(CLITheme.size(sz, bytes: rf.size))")
                 relTotal += rf.size
             }
-            print("  Total related:    \(formatBytes(relTotal))")
+            print("  \(CLITheme.label("Crumb pile:"))       \(CLITheme.gold(formatBytes(relTotal)))")
         }
         print("")
+    }
+
+    private func styledArchLabel(for app: AppInfo) -> String {
+        if app.architecture == .i386 { return CLITheme.danger(app.architecture.label) }
+        if app.architecture == .x86_64 || app.isQuarantined { return CLITheme.warning(app.architecture.label) }
+        if app.architecture == .arm64 { return CLITheme.green(app.architecture.label) }
+        return CLITheme.label(app.architecture.label)
+    }
+
+    private func styledOriginLabel(for app: AppInfo) -> String {
+        if app.isQuarantined { return CLITheme.warning(app.originLabel) }
+        if app.isFromAppStore { return CLITheme.green(app.originLabel) }
+        if app.isAppleSigned { return CLITheme.purple(app.originLabel) }
+        return CLITheme.blue(app.originLabel)
     }
 
     private func formatBytes(_ bytes: Int64) -> String {
@@ -262,15 +324,15 @@ struct Info: ParsableCommand {
 // MARK: - delete
 
 struct Delete: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Delete an app and optionally its related files")
+    static let configuration = CommandConfiguration(abstract: "Move an app to the Mac Trash after Piggy asks you")
 
-    @Argument(help: "App name or bundle identifier")
+    @Argument(help: "App name or Mac app ID")
     var app: String
 
-    @Flag(name: .shortAndLong, help: "Skip confirmation prompt")
+    @Flag(name: .shortAndLong, help: "Skip the safety question")
     var force: Bool = false
 
-    @Flag(name: .long, help: "Also delete related files (prefs, caches, containers)")
+    @Flag(name: .long, help: "Also move safe related app crumbs, like caches and settings, to Trash")
     var withRelated: Bool = false
 
     func run() throws {
@@ -282,43 +344,55 @@ struct Delete: ParsableCommand {
             $0.bundleIdentifier?.lowercased() == lower ||
             ($0.bundleIdentifier?.lowercased().contains(lower) ?? false)
         }) else {
-            print("App not found: \(app)")
+            print("🐽 Piggy could not sniff out an app named '\(app)'.")
             throw ExitCode.failure
         }
 
-        print("Deleting: \(info.displayName) (\(info.formattedSize))")
+        print("")
+        print(CLITheme.title("🐽 Piggy can move this app to Trash"))
+        print(CLITheme.separator("────────────────────────────────────"))
+        print("\(CLITheme.purple("•")) App: \(CLITheme.path(info.displayName))")
+        print("\(CLITheme.purple("•")) Space: \(CLITheme.size(info.formattedSize, bytes: info.size))")
+        print("\(CLITheme.purple("•")) Piggy uses the normal Mac Trash, so this is not a shredder.")
 
         if !withRelated {
-            let related = AppRemover.findRelatedFiles(for: info)
+            let related = findRelatedFilesWithActivity(for: info)
             if !related.isEmpty {
                 let relTotal = related.reduce(0) { $0 + $1.size }
                 let relSizeStr = formatBytes(relTotal)
-                print("  Also found \(related.count) related files (\(relSizeStr)). Use --with-related to clean those too.")
+                print("\(CLITheme.purple("•")) Piggy also found \(CLITheme.gold("\(related.count)")) related app crumbs (\(CLITheme.gold(relSizeStr))).")
+                print("  \(CLITheme.label("Tip:")) add \(CLITheme.command("--with-related")) if you want Piggy to include safe crumbs too.")
             }
         }
 
         if !force {
-            print("Are you sure? [y/N] ", terminator: "")
+            print("")
+            print("Move \(info.displayName) to Trash? [y/N] ", terminator: "")
             guard let response = readLine()?.lowercased(), response == "y" || response == "yes" else {
-                print("Cancelled.")
+                print("🐽 No problem. Piggy did not move anything.")
                 return
             }
         }
 
-        let result = AppRemover.delete(app: info, includeRelated: withRelated)
+        let indicator = TerminalActivityIndicator(action: "Piggy is moving items to Trash", doneLabel: "Trash move complete")
+        indicator.start(info.displayName)
+        let result = AppRemover.delete(app: info, includeRelated: withRelated) { progress in
+            indicator.update(progress.statusSummary)
+        }
+        indicator.finish()
         if result.didTrash {
-            print("Trashed: \(result.appName)")
+            print("🐽 Moved to Trash: \(result.appName)")
             if withRelated && !result.trashedRelatedFiles.isEmpty {
-                print("  + \(result.trashedRelatedFiles.count) related files")
+                print("  + \(result.trashedRelatedFiles.count) safe related app crumbs")
             }
             if withRelated && !result.skippedRelatedFiles.isEmpty {
-                print("  skipped \(result.skippedRelatedFiles.count) sensitive/protected related files")
+                print("  Piggy skipped \(result.skippedRelatedFiles.count) sensitive crumbs to be safe.")
             }
-            print("Freed: \(formatBytes(result.totalFreed))")
+            print("Trash pile: \(formatBytes(result.totalFreed))")
         } else {
-            print("Failed to trash: \(info.displayName)")
+            print("🐽 Piggy could not move \(info.displayName) to Trash.")
             if let reason = result.failureReason {
-                print("Reason: \(reason)")
+                print("Reason from macOS: \(reason)")
             }
         }
     }
@@ -337,44 +411,114 @@ struct Delete: ParsableCommand {
 // MARK: - search
 
 struct Search: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Search apps by name, bundle ID, or purpose")
+    static let configuration = CommandConfiguration(abstract: "Ask Piggy to find apps by name or description")
 
     @Argument(help: "Search query")
     var query: String
 
     func run() throws {
         let apps = scannedApps()
-        let lower = query.lowercased()
-        let results = apps.filter {
-            $0.displayName.lowercased().contains(lower) ||
-            ($0.bundleIdentifier?.lowercased().contains(lower) ?? false) ||
-            ($0.purpose?.lowercased().contains(lower) ?? false)
-        }.sorted { $0.size > $1.size }
+        let matches = AppSearch.search(apps, query: query)
+        let results = matches.apps
 
         if results.isEmpty {
-            print("No apps matching '\(query)'")
+            print("🐽 Piggy could not sniff out any apps matching '\(query)'.")
             return
         }
 
-        List().printTable(results)
+        printSearchResults(results, usedTechnicalFallback: matches.usedTechnicalFallback)
+    }
+
+    private func printSearchResults(_ results: [AppInfo], usedTechnicalFallback: Bool) {
+        print("")
+        print(CLITheme.title("🐽 Piggy found matching apps"))
+        print(CLITheme.separator("──────────────────────────"))
+        if usedTechnicalFallback {
+            print("\(CLITheme.purple("•")) Piggy did not find that in app names, so it checked hidden Mac IDs and descriptions.")
+        }
+        print("\(CLITheme.purple("•")) Search shows full paths and descriptions so nothing important gets chopped off.")
+        print("\(CLITheme.purple("•")) Bundle date is the app bundle file date; app updates can make an old app look newly added.")
+        print("")
+
+        for (index, app) in results.enumerated() {
+            print("  \(CLITheme.rank("\(index + 1).", index: index)) \(CLITheme.path(app.displayName))")
+            print("     \(CLITheme.label("Size:"))        \(CLITheme.size(app.formattedSize, bytes: app.size))")
+            print("     \(CLITheme.label("Path:"))        \(CLITheme.path(displayPath(app.path)))")
+            if let bundleID = app.bundleIdentifier {
+                print("     \(CLITheme.label("Bundle ID:"))   \(bundleID)")
+            }
+            if let shortVersion = app.shortVersion {
+                let build = app.bundleVersion.map { " (build \($0))" } ?? ""
+                print("     \(CLITheme.label("Version:"))     \(CLITheme.gold(shortVersion + build))")
+            }
+            print("     \(CLITheme.label("Chip:"))        \(styledArchLabel(for: app))")
+            print("     \(CLITheme.label("Scope:"))       \(scopeDescription(for: app))")
+            print("     \(CLITheme.label("From:"))        \(styledOriginLabel(for: app))")
+            if let created = app.creationDate {
+                print("     \(CLITheme.label("Bundle date:")) \(relativeLabel(created))")
+            }
+            if let modified = app.modificationDate {
+                print("     \(CLITheme.label("Updated:"))     \(relativeLabel(modified))")
+            }
+            if let lastUsed = app.lastUsedDate {
+                print("     \(CLITheme.label("Last opened:")) \(relativeLabel(lastUsed))")
+            }
+            print("     \(CLITheme.label("Helpers:"))     \(app.agentCount > 0 ? CLITheme.warning("\(app.agentCount)") : "0")")
+            if app.isQuarantined {
+                print("     \(CLITheme.warning("Downloaded:"))  quarantine flag still attached")
+            }
+            print("     \(CLITheme.label("What it is:"))   \(app.purpose ?? "-")")
+            if index < results.count - 1 { print("") }
+        }
+    }
+
+    private func styledArchLabel(for app: AppInfo) -> String {
+        if app.architecture == .i386 { return CLITheme.danger(app.architecture.label) }
+        if app.architecture == .x86_64 || app.isQuarantined { return CLITheme.warning(app.architecture.label) }
+        if app.architecture == .arm64 { return CLITheme.green(app.architecture.label) }
+        return CLITheme.label(app.architecture.label)
+    }
+
+    private func styledOriginLabel(for app: AppInfo) -> String {
+        if app.isQuarantined { return CLITheme.warning(app.originLabel) }
+        if app.isFromAppStore { return CLITheme.green(app.originLabel) }
+        if app.isAppleSigned { return CLITheme.purple(app.originLabel) }
+        return CLITheme.blue(app.originLabel)
+    }
+
+    private func scopeDescription(for app: AppInfo) -> String {
+        switch app.sourceDir {
+        case .system:
+            return "System macOS app (/System/Applications)"
+        case .rootApp:
+            return "System-wide app (/Applications)"
+        case .userApp:
+            return "User app (~/Applications)"
+        }
     }
 }
 
 // MARK: - orphans
 
 struct Orphans: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Find leftover files from deleted apps")
+    static let configuration = CommandConfiguration(abstract: "Find leftover app crumbs from apps you may have removed")
 
-    @Flag(name: .shortAndLong, help: "Delete all orphan files with confirmation")
+    @Flag(name: .shortAndLong, help: "Move safe leftover crumbs to Trash after Piggy asks")
     var delete: Bool = false
 
     func run() throws {
         let apps = scannedApps()
         let installedIDs = Set(apps.compactMap { $0.bundleIdentifier })
-        let orphans = OrphanScanner.scan(installedBundleIDs: installedIDs)
+        let indicator = TerminalActivityIndicator(action: "Piggy is sniffing app crumbs", doneLabel: "Crumb sniff complete")
+        indicator.start("looking in your Library support folders")
+        let orphans = OrphanScanner.scan(installedBundleIDs: installedIDs) { progress in
+            let path = TerminalActivityIndicator.clipped(displayPath(progress.currentURL), to: 44)
+            indicator.update("\(progress.statusSummary) · \(path)")
+        }
+        indicator.finish("\(orphans.count) crumb piles found")
 
         if orphans.isEmpty {
-            print("No orphans found. Clean!")
+            print("🐽 Piggy did not find leftover app crumbs. Nice and tidy.")
             return
         }
 
@@ -384,31 +528,41 @@ struct Orphans: ParsableCommand {
         let catW = 14
         let sizeW = 10
         print("")
-        print("  \("Category".padding(toLength: catW, withPad: " ", startingAt: 0))  \("Size".padding(toLength: sizeW, withPad: " ", startingAt: 0))  Likely App          Path")
-        print("  " + String(repeating: "─", count: min(catW + sizeW + 60, 100)))
+        print(CLITheme.title("🐽 Leftover app crumbs Piggy found"))
+        print(CLITheme.separator("──────────────────────────────────"))
+        print("\(CLITheme.purple("•")) Just looking: Piggy will not move anything unless you add \(CLITheme.command("--delete")) and say yes.")
+        print("\(CLITheme.purple("•")) Crumbs are settings, caches, logs, or support folders left behind by apps.")
+        print("")
+        print("  \(CLITheme.label("Kind".padding(toLength: catW, withPad: " ", startingAt: 0)))  \(CLITheme.label("Space".padding(toLength: sizeW, withPad: " ", startingAt: 0)))  \(CLITheme.label("Maybe from"))         \(CLITheme.label("Where Piggy found it"))")
+        print("  " + CLITheme.separator(String(repeating: "─", count: min(catW + sizeW + 60, 100))))
 
         for orphan in orphans {
-            let cat = orphan.category.padding(toLength: catW, withPad: " ", startingAt: 0)
-            let size = orphan.formattedSize.padding(toLength: sizeW, withPad: " ", startingAt: 0)
+            let cat = CLITheme.gold(orphan.category.padding(toLength: catW, withPad: " ", startingAt: 0))
+            let size = CLITheme.size(orphan.formattedSize.padding(toLength: sizeW, withPad: " ", startingAt: 0), bytes: orphan.size)
             let appName = (orphan.likelyAppName ?? "-").padding(toLength: 18, withPad: " ", startingAt: 0)
-            let path = orphan.path.path
+            let path = CLITheme.path(orphan.path.path)
             print("  \(cat)  \(size)  \(appName) \(path)")
         }
 
         print("")
-        print("\(orphans.count) orphans (\(totalStr)) reclaimable")
+        print("\(CLITheme.warning("\(orphans.count) crumb piles")) \(CLITheme.dim("(\(totalStr))")) Piggy can help review")
 
         if self.delete {
-            print("Delete all \(orphans.count) orphans? [y/N] ", terminator: "")
+            print("Move safe leftover crumbs to Trash? [y/N] ", terminator: "")
             guard let response = readLine()?.lowercased(), response == "y" || response == "yes" else {
-                print("Cancelled.")
+                print("🐽 No problem. Piggy did not move anything.")
                 return
             }
             let relatedFiles = orphans.map { AppRemover.RelatedFile(path: $0.path, size: $0.size, category: $0.category) }
-            let result = AppRemover.deleteRelatedFiles(relatedFiles)
-            print("Deleted \(result.trashed.count) orphans. Freed: \(formatBytes(result.totalFreed))")
+            let deleteIndicator = TerminalActivityIndicator(action: "Piggy is moving crumbs to Trash", doneLabel: "Crumb move complete")
+            deleteIndicator.start("\(relatedFiles.count) crumb piles")
+            let result = AppRemover.deleteRelatedFiles(relatedFiles) { progress in
+                deleteIndicator.update(progress.statusSummary)
+            }
+            deleteIndicator.finish("\(result.trashed.count) moved")
+            print("🐽 Moved \(result.trashed.count) crumb piles to Trash. Trash pile: \(formatBytes(result.totalFreed))")
             if !result.skipped.isEmpty {
-                print("Skipped \(result.skipped.count) sensitive/protected orphans.")
+                print("Piggy skipped \(result.skipped.count) sensitive crumbs to be safe.")
             }
         }
     }
@@ -427,7 +581,7 @@ struct Orphans: ParsableCommand {
 // MARK: - export
 
 struct Export: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Export app list to CSV or JSON")
+    static let configuration = CommandConfiguration(abstract: "Let Piggy pack the app list into CSV or JSON")
 
     @Option(name: .shortAndLong, help: "Output format: csv or json")
     var format: String = "csv"
@@ -487,7 +641,7 @@ struct Export: ParsableCommand {
 
         if let path = output {
             try outputStr.write(toFile: path, atomically: true, encoding: .utf8)
-            print("Exported to \(path)")
+            print("🐽 Piggy packed the app list here: \(path)")
         } else {
             print(outputStr, terminator: "")
         }
@@ -499,6 +653,26 @@ struct Export: ParsableCommand {
         }
         return s
     }
+}
+
+private func findRelatedFilesWithActivity(for app: AppInfo) -> [AppRemover.RelatedFile] {
+    let indicator = TerminalActivityIndicator(action: "Piggy is sniffing related app crumbs", doneLabel: "Related crumb sniff complete")
+    indicator.start(app.displayName)
+    let related = AppRemover.findRelatedFiles(for: app) { progress in
+        indicator.update(progress.statusSummary)
+    }
+    indicator.finish("\(related.count) related")
+    return related
+}
+
+private func displayPath(_ url: URL) -> String {
+    let path = url.standardizedFileURL.path
+    let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path
+    if path == home { return "~" }
+    if path.hasPrefix(home + "/") {
+        return "~" + path.dropFirst(home.count)
+    }
+    return path
 }
 
 private func relativeLabel(_ date: Date) -> String {

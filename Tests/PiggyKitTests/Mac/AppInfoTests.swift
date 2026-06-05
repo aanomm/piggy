@@ -33,6 +33,10 @@ final class AppInfoTests: XCTestCase {
         XCTAssertEqual(Architecture.x86_64.shortLabel, "x86_64")
     }
 
+    func testCreatedSortLabelDescribesBundleDate() {
+        XCTAssertEqual(SortKey.created.label, "Bundle Date")
+    }
+
     private func makeApp(
         name: String = "Example",
         path: String = "/Applications/Example.app",

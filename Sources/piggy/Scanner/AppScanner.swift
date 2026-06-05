@@ -6,20 +6,22 @@ enum AppScanner {
         PurposeLookup.load()
         let agents = AgentScanner.scanAllAgents()
 
-        var allApps: [AppInfo] = []
-        for source in AppInfo.SourceDirectory.allCases {
-            let apps = discoverApps(in: source, agents: agents, progress: progress)
-            allApps.append(contentsOf: apps)
+        let appBundles = AppInfo.SourceDirectory.allCases.flatMap { source in
+            discoverAppBundles(in: source).map { (url: $0, source: source) }
         }
 
-        return allApps
+        var apps: [AppInfo] = []
+        for (index, bundle) in appBundles.enumerated() {
+            progress?(index + 1, appBundles.count, bundle.url.lastPathComponent)
+            if let info = parseApp(at: bundle.url, source: bundle.source, agents: agents) {
+                apps.append(info)
+            }
+        }
+
+        return apps
     }
 
-    private static func discoverApps(
-        in source: AppInfo.SourceDirectory,
-        agents: [String: [AgentScanner.AgentInfo]],
-        progress: ((Int, Int, String) -> Void)?
-    ) -> [AppInfo] {
+    private static func discoverAppBundles(in source: AppInfo.SourceDirectory) -> [URL] {
         let dirPath = source.path
         let dirURL = URL(fileURLWithPath: dirPath)
 
@@ -36,15 +38,7 @@ enum AppScanner {
             }
         }
 
-        var apps: [AppInfo] = []
-        for (i, appURL) in appBundles.enumerated() {
-            progress?(i, appBundles.count, appURL.lastPathComponent)
-            if let info = parseApp(at: appURL, source: source, agents: agents) {
-                apps.append(info)
-            }
-        }
-
-        return apps
+        return appBundles
     }
 
     private static func parseApp(

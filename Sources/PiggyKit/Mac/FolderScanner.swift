@@ -12,6 +12,24 @@ public struct FolderFinding: Equatable {
     }
 }
 
+public struct FolderScanProgress: Equatable {
+    public let foldersVisited: Int
+    public let filesCounted: Int
+    public let bytesCounted: Int64
+    public let currentURL: URL
+
+    public init(foldersVisited: Int, filesCounted: Int, bytesCounted: Int64, currentURL: URL) {
+        self.foldersVisited = foldersVisited
+        self.filesCounted = filesCounted
+        self.bytesCounted = bytesCounted
+        self.currentURL = currentURL
+    }
+
+    public var statusSummary: String {
+        "\(foldersVisited) folders · \(filesCounted) files · \(ByteFormat.string(bytesCounted))"
+    }
+}
+
 public enum FolderScanner {
     private struct FolderMetrics {
         var totalBytes: Int64 = 0
@@ -19,14 +37,51 @@ public enum FolderScanner {
         var folderCount: Int = 0
     }
 
+    private struct ScanProgressState {
+        var foldersVisited: Int = 0
+        var filesCounted: Int = 0
+        var bytesCounted: Int64 = 0
+
+        mutating func visitedFolder(_ url: URL, progress: ((FolderScanProgress) -> Void)?) {
+            foldersVisited += 1
+            emit(url, progress: progress)
+        }
+
+        mutating func countedFile(_ url: URL, bytes: Int64, progress: ((FolderScanProgress) -> Void)?) {
+            filesCounted += 1
+            bytesCounted += bytes
+            emit(url, progress: progress)
+        }
+
+        private func emit(_ url: URL, progress: ((FolderScanProgress) -> Void)?) {
+            progress?(
+                FolderScanProgress(
+                    foldersVisited: foldersVisited,
+                    filesCounted: filesCounted,
+                    bytesCounted: bytesCounted,
+                    currentURL: url
+                )
+            )
+        }
+    }
+
     public static func scan(
         root: URL,
         maxDepth: Int = 1,
         includeHidden: Bool = false,
-        minimumBytes: Int64 = 0
+        minimumBytes: Int64 = 0,
+        progress: ((FolderScanProgress) -> Void)? = nil
     ) -> [FolderFinding] {
         let depthLimit = max(1, maxDepth)
-        let (_, findings) = scanFolder(root, depth: 0, maxDepth: depthLimit, includeHidden: includeHidden)
+        var progressState = ScanProgressState()
+        let (_, findings) = scanFolder(
+            root,
+            depth: 0,
+            maxDepth: depthLimit,
+            includeHidden: includeHidden,
+            progressState: &progressState,
+            progress: progress
+        )
 
         return findings
             .filter { $0.totalBytes >= minimumBytes }
@@ -43,8 +98,11 @@ public enum FolderScanner {
         _ folder: URL,
         depth: Int,
         maxDepth: Int,
-        includeHidden: Bool
+        includeHidden: Bool,
+        progressState: inout ScanProgressState,
+        progress: ((FolderScanProgress) -> Void)?
     ) -> (FolderMetrics, [FolderFinding]) {
+        progressState.visitedFolder(folder, progress: progress)
         guard let children = try? FileManager.default.contentsOfDirectory(
             at: folder,
             includingPropertiesForKeys: [.fileSizeKey, .isRegularFileKey, .isDirectoryKey, .isHiddenKey, .isSymbolicLinkKey],
@@ -61,14 +119,18 @@ public enum FolderScanner {
             if shouldSkip(child, values: values, includeHidden: includeHidden) { continue }
 
             if values.isRegularFile == true {
-                metrics.totalBytes += Int64(values.fileSize ?? 0)
+                let bytes = Int64(values.fileSize ?? 0)
+                metrics.totalBytes += bytes
                 metrics.fileCount += 1
+                progressState.countedFile(child, bytes: bytes, progress: progress)
             } else if values.isDirectory == true {
                 let (childMetrics, childFindings) = scanFolder(
                     child,
                     depth: depth + 1,
                     maxDepth: maxDepth,
-                    includeHidden: includeHidden
+                    includeHidden: includeHidden,
+                    progressState: &progressState,
+                    progress: progress
                 )
                 metrics.totalBytes += childMetrics.totalBytes
                 metrics.fileCount += childMetrics.fileCount

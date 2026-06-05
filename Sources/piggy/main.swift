@@ -5,8 +5,8 @@ import ArgumentParser
 struct Piggy: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "piggy",
-        abstract: "Sniff out disk hogs — a lean, fast Mac space scout",
-        discussion: "Scan all apps, view details, sort by size/date/arch, delete with leftover cleanup.",
+        abstract: "A friendly Mac tidy helper that looks, weighs, and explains before anything moves.",
+        discussion: "Piggy helps you see which apps and folders take up space. Most commands only look. Trash commands ask first.",
         subcommands: [Mac.self, Folders.self, Folder.self, Audit.self, Snort.self, List.self, Info.self, Delete.self, Search.self, Orphans.self, Export.self],
         defaultSubcommand: nil
     )
@@ -19,8 +19,8 @@ struct Piggy: ParsableCommand {
 struct Mac: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "mac",
-        abstract: "Audit and clean macOS application bloat",
-        discussion: "Namespaced Mac commands. Existing top-level commands remain as compatibility aliases.",
+        abstract: "Sniff around your Mac apps.",
+        discussion: "These commands help Piggy list apps, explain space use, and find leftover app crumbs.",
         subcommands: [Audit.self, Snort.self, List.self, Info.self, Delete.self, Search.self, Orphans.self, Export.self],
         defaultSubcommand: List.self
     )

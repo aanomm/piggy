@@ -18,8 +18,22 @@ struct OrphanInfo {
     }
 }
 
+struct OrphanScanProgress {
+    let categoriesVisited: Int
+    let itemsChecked: Int
+    let orphansFound: Int
+    let currentURL: URL
+
+    var statusSummary: String {
+        "\(categoriesVisited) places · \(itemsChecked) crumbs checked · \(orphansFound) possible leftovers"
+    }
+}
+
 enum OrphanScanner {
-    static func scan(installedBundleIDs: Set<String>) -> [OrphanInfo] {
+    static func scan(
+        installedBundleIDs: Set<String>,
+        progress: ((OrphanScanProgress) -> Void)? = nil
+    ) -> [OrphanInfo] {
         let home = NSHomeDirectory()
         let searchDirs: [(String, String)] = [
             ("\(home)/Library/Preferences", "Preferences"),
@@ -32,8 +46,12 @@ enum OrphanScanner {
         ]
 
         var orphans: [OrphanInfo] = []
+        var categoriesVisited = 0
+        var itemsChecked = 0
+        var orphansFound = 0
 
         for (dirPath, category) in searchDirs {
+            categoriesVisited += 1
             let dirURL = URL(fileURLWithPath: dirPath)
             guard let contents = try? FileManager.default.contentsOfDirectory(
                 at: dirURL,
@@ -42,6 +60,7 @@ enum OrphanScanner {
             ) else { continue }
 
             for url in contents {
+                itemsChecked += 1
                 let name = url.lastPathComponent
                 let nameWithoutExt = url.deletingPathExtension().lastPathComponent
 
@@ -49,6 +68,7 @@ enum OrphanScanner {
                     let size = SizeCalculator.calculateSize(of: url)
                     if size > 0 {
                         let appName = resolveLikelyAppName(dirName: nameWithoutExt)
+                        orphansFound += 1
                         orphans.append(OrphanInfo(
                             path: url,
                             size: size,
@@ -57,6 +77,14 @@ enum OrphanScanner {
                         ))
                     }
                 }
+                progress?(
+                    OrphanScanProgress(
+                        categoriesVisited: categoriesVisited,
+                        itemsChecked: itemsChecked,
+                        orphansFound: orphansFound,
+                        currentURL: url
+                    )
+                )
             }
         }
 

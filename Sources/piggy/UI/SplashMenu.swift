@@ -18,14 +18,14 @@ private func handleSplashInterrupt(_ signalNumber: Int32) {
 }
 
 private let MENU_ITEMS: [(String, String, String)] = [
-    ("1", "Audit",   "read-only Mac bloat/risk summary"),
-    ("2", "Folders", "rank folders by size + file count"),
-    ("3", "Snort",   "list all apps, sorted by size"),
-    ("4", "Sniff",   "search apps by name"),
-    ("5", "Dig",     "deep info on one app"),
-    ("6", "Crumbs",  "leftover files from deleted apps"),
-    ("7", "Stash",   "export to CSV/JSON"),
-    ("8", "Pig",     "interactive terminal browser"),
+    ("1", "Peek",    "look at your apps without touching anything"),
+    ("2", "Folders", "find the biggest folders in a place you choose"),
+    ("3", "Apps",    "show your app pile, biggest first"),
+    ("4", "Find",    "search for an app by name"),
+    ("5", "Explain", "plain-English notes for one app"),
+    ("6", "Crumbs",  "leftover app bits Piggy can review"),
+    ("7", "Pack",    "save the app list as CSV or JSON"),
+    ("8", "Play",    "open the interactive Piggy browser"),
 ]
 
 enum SplashMenu {
@@ -149,7 +149,7 @@ enum SplashMenu {
                             try? infoCmd.run()
                             waitForEnter()
                         } else {
-                            print("  Cancelled.\n")
+                            print("  🐽 No problem. Piggy did not do anything.\n")
                         }
                         isFirstRender = false
                     case "search", "s":
@@ -160,7 +160,7 @@ enum SplashMenu {
                             try? searchCmd.run()
                             waitForEnter()
                         } else {
-                            print("  Cancelled.\n")
+                            print("  🐽 No problem. Piggy did not do anything.\n")
                         }
                         isFirstRender = false
                     case "orphans", "o":
@@ -187,7 +187,7 @@ enum SplashMenu {
                     default:
                         let pig = ["(\(PINK)°\(RESET)o\(PINK)°\(RESET))", "(\(PINK)•\(RESET)˕\(PINK)•\(RESET))", "(\(PINK)⇀\(RESET)↼\(PINK)⇀\(RESET))"]
                         let pigface = pig[Int.random(in: 0..<pig.count)]
-                        print("  \(pigface)  Unknown: '\(fullInput)'. Press 1-8 or h for help.\n")
+                        print("  \(pigface)  Piggy does not know '\(fullInput)' yet. Press 1-8 or h for help.\n")
                     }
                 }
             }
@@ -221,7 +221,7 @@ enum SplashMenu {
                 try? searchCmd.run()
                 waitForEnter()
             } else {
-                print("  Cancelled.\n")
+                print("  🐽 No problem. Piggy did not do anything.\n")
             }
             return true
         case 4:
@@ -232,7 +232,7 @@ enum SplashMenu {
                 try? infoCmd.run()
                 waitForEnter()
             } else {
-                print("  Cancelled.\n")
+                print("  🐽 No problem. Piggy did not do anything.\n")
             }
             return true
         case 5:
@@ -295,7 +295,7 @@ enum SplashMenu {
 
         Banner.printBanner()
 
-        let title = " choose your trail "
+        let title = " choose a gentle Piggy trail "
         print("\(pad)\(BORDER)╭\(PINK)\(title)\(BORDER)\(String(repeating: "─", count: max(0, boxW - visibleLength(title))))╮\(RESET)")
         printBoxLine("", width: boxW, pad: pad)
 
@@ -313,10 +313,10 @@ enum SplashMenu {
         }
 
         printBoxLine("", width: boxW, pad: pad)
-        printBoxLine("  \(MAUVE)↑↓\(RESET) navigate   \(MAUVE)↵\(RESET) select   \(MAUVE)1-8\(RESET) jump   \(MAUVE)q\(RESET) quit   \(MAUVE)h\(RESET) help", width: boxW, pad: pad)
+        printBoxLine("  \(MAUVE)↑↓\(RESET) move   \(MAUVE)↵\(RESET) choose   \(MAUVE)1-8\(RESET) quick pick   \(MAUVE)q\(RESET) leave   \(MAUVE)h\(RESET) help", width: boxW, pad: pad)
         print("\(pad)\(BORDER)╰\(String(repeating: "─", count: boxW))╯\(RESET)")
         print("")
-        print("\(pad)\(DIM)type a command or pick a trail:\(RESET) ", terminator: "")
+        print("\(pad)\(DIM)type a command, or pick a trail above:\(RESET) ", terminator: "")
         fflush(stdout)
     }
 
@@ -384,48 +384,53 @@ enum SplashMenu {
     // MARK: - Help
 
     private static func printNonInteractiveHelp() {
-        print("Piggy — macOS bloat radar")
+        print("Piggy - friendly Mac tidy helper")
         print("")
-        print("Run a command directly when stdin/stdout is not interactive:")
+        print("Piggy mostly looks and explains. Trash commands ask before moving anything.")
+        print("")
+        print("Try a gentle command:")
         print("  piggy mac audit")
         print("  piggy folders ~/Downloads --limit 25")
         print("  piggy mac list --sort size")
         print("  piggy mac orphans")
         print("")
-        print("Use `piggy --help` for the full command list.")
+        print("Use `piggy --help` for the full list.")
     }
 
     private static func printHelp() {
         print("")
-        print("  \(BOLD)piggy — sniff out disk hogs\(RESET)")
+        print("  \(BOLD)piggy - a gentle terminal playground for finding space\(RESET)")
         print("")
-        print("  \(PINK)Commands:\(RESET)")
-        print("    piggy audit         Read-only Mac app bloat/risk summary")
-        print("    piggy folders       Rank folders by size with file counts")
+        print("  \(PINK)Safety promise:\(RESET)")
+        print("    Piggy looks first. It does not move, edit, or trash files unless a Trash command asks and you say yes.")
+        print("")
+        print("  \(PINK)Friendly commands:\(RESET)")
+        print("    piggy audit         Piggy checks your apps and explains what looks big or old")
+        print("    piggy folders       Piggy weighs folders in the place you choose")
         print("    piggy folders ~/Downloads --limit 25")
         print("    piggy folders ~/Library --min-size 1gb")
-        print("    piggy snort         List all apps, biggest first")
-        print("    piggy snort small   List all apps, smallest first")
-        print("    piggy snort new     Newest installed apps first")
-        print("    piggy snort old     Oldest installed apps first")
-        print("    piggy snort --fresh Force a new scan and refresh cache")
-        print("    piggy info <app>    Full details on one app + related files")
-        print("    piggy search <q>    Find apps by name, bundle ID, or purpose")
-        print("    piggy delete <app>  Delete app + leftovers (prefs, caches)")
-        print("    piggy orphans       Find leftover files from deleted apps")
-        print("    piggy export        Export app list to CSV or JSON")
+        print("    piggy snort         Piggy shows your app pile, biggest first")
+        print("    piggy snort small   Smallest apps first")
+        print("    piggy snort new     Newest apps first")
+        print("    piggy snort old     Oldest apps first")
+        print("    piggy snort --fresh Piggy takes a fresh look instead of using recent notes")
+        print("    piggy info <app>    Piggy explains one app")
+        print("    piggy search <q>    Piggy finds apps by name or description")
+        print("    piggy delete <app>  Piggy asks, then moves an app to the Mac Trash")
+        print("    piggy orphans       Piggy looks for leftover app crumbs")
+        print("    piggy export        Piggy packs the app list as CSV or JSON")
         print("    piggy               Open this menu")
-        print("    piggy --help        Full help with all flags")
+        print("    piggy --help        Full help with all options")
         print("")
-        print("  \(PINK)Sort keys:\(RESET) size, name, created, modified, used, arch, version, store, agents")
+        print("  \(PINK)Sorting words:\(RESET) size, name, created, modified, used, arch, version, store, agents")
         print("  \(PINK)Examples:\(RESET)")
         print("    piggy snort big                    Biggest apps first")
-        print("    piggy snort new                    Newest installed apps first")
-        print("    piggy snort new --fresh            Rescan before sorting")
-        print("    piggy list --sort size              Advanced list sorting")
-        print("    piggy list --rosetta                 Find Intel apps on Apple Silicon")
-        print("    piggy list --flag32bit              Find dead 32-bit apps")
-        print("    piggy delete \"Slack\" --with-related  Full uninstall")
+        print("    piggy snort new                    Newest apps first")
+        print("    piggy snort new --fresh            Fresh app sniff")
+        print("    piggy list --sort size             More sorting options")
+        print("    piggy list --rosetta               Find older Intel-style apps")
+        print("    piggy list --flag32bit             Find very old apps")
+        print("    piggy delete \"Slack\" --with-related  Ask before moving app + safe crumbs to Trash")
         print("")
     }
 

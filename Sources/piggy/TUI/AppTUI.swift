@@ -55,7 +55,7 @@ private enum TUIMode {
 enum AppTUI {
     static func run() {
         guard isTerminal() else {
-            print("piggy: TUI requires a terminal. Use subcommands (piggy list, piggy info, etc.) instead.")
+            print("piggy: the playful browser needs an interactive terminal. Try `piggy list` or `piggy info <app>` instead.")
             return
         }
 
@@ -135,7 +135,7 @@ enum AppTUI {
             buf += "\r\n"
         }
 
-        let tagline = "\(fg(175))  ~ sniff out disk hogs ~\(RESET)"
+        let tagline = "\(fg(175))  ~ look, weigh, explain - no surprise deletes ~\(RESET)"
         let tagClean = tagline.replacingOccurrences(of: "\u{1B}\\[[0-9;]*[A-Za-z]", with: "", options: .regularExpression)
         let tagDisplayLen = tagClean.count
         buf += String(repeating: " ", count: max(0, (w - tagDisplayLen) / 2)) + tagline + "\r\n"
@@ -741,7 +741,10 @@ private func csvEscape(_ s: String) -> String {
 private func showHelp() {
     let help = """
     \r\n\u{1B}[2J\u{1B}[H
-    \(BOLD)piggy — Help\(RESET)
+    \(BOLD)piggy - playful app browser\(RESET)
+
+    Safety
+      Piggy looks first. Trash actions move items to the Mac Trash.
 
     Navigation
       j / ↓              Move down
@@ -752,10 +755,10 @@ private func showHelp() {
       t                  Toggle detail pane
 
     Actions
-      Space              Mark/unmark for deletion
-      d                  Delete selected app
-      D                  Delete all marked apps
-      /                  Filter by name (type to search)
+      Space              Mark/unmark an app
+      d                  Move selected app to Trash
+      D                  Move marked apps to Trash
+      /                  Find by name
       Esc                Clear filter / clear marks
 
     Sort (press letter, again to toggle asc/desc)
@@ -764,8 +767,8 @@ private func showHelp() {
       b  Agents
 
     Other
-      e                  Export to ~/Desktop/piggy-export.csv
-      r                  Rescan apps
+      e                  Pack list into ~/Desktop/piggy-export.csv
+      r                  Fresh app sniff
       q / Ctrl-C         Quit
 
     Press any key to return to piggy...
@@ -821,12 +824,9 @@ private func applySortAndFilter(_ state: inout TUIState) {
     if filterText.isEmpty {
         state.filteredApps = Array(sortedIndices)
     } else {
-        let lower = filterText.lowercased()
+        let matchedIDs = AppSearch.visibleNameMatchedAppIDs(state.apps, query: filterText)
         state.filteredApps = sortedIndices.filter { idx in
-            let app = state.apps[idx]
-            return app.displayName.lowercased().contains(lower) ||
-                   (app.bundleIdentifier?.lowercased().contains(lower) ?? false) ||
-                   (app.purpose?.lowercased().contains(lower) ?? false)
+            matchedIDs.contains(state.apps[idx].id)
         }
     }
 

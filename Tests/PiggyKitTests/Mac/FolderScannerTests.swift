@@ -93,6 +93,28 @@ final class FolderScannerTests: XCTestCase {
         XCTAssertEqual(folders.first?.fileCount, 1)
     }
 
+    func testScanReportsProgressWhileWalkingFoldersAndFiles() throws {
+        let root = try makeTemporaryDirectory()
+        let first = try makeFolder(named: "First", in: root)
+        try writeBytes(4, to: first.appendingPathComponent("one.bin"))
+        let second = try makeFolder(named: "Second", in: root)
+        try writeBytes(9, to: second.appendingPathComponent("two.bin"))
+
+        var events: [FolderScanProgress] = []
+        _ = FolderScanner.scan(root: root, maxDepth: 1) { progress in
+            events.append(progress)
+        }
+
+        XCTAssertFalse(events.isEmpty)
+        XCTAssertGreaterThanOrEqual(events.last?.foldersVisited ?? 0, 3)
+        XCTAssertEqual(events.last?.filesCounted, 2)
+        XCTAssertEqual(events.last?.bytesCounted, 13)
+        XCTAssertEqual(events.last?.statusSummary, "3 folders · 2 files · 13 B")
+        XCTAssertTrue(events.contains { $0.currentURL.lastPathComponent == "First" })
+        XCTAssertTrue(events.contains { $0.currentURL.lastPathComponent == "Second" })
+        XCTAssertEqual(events.map(\.filesCounted), events.map(\.filesCounted).sorted())
+    }
+
     private func makeTemporaryDirectory() throws -> URL {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("PiggyFolderScannerTests")

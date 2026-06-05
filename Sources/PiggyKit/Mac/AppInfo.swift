@@ -154,7 +154,7 @@ public enum SortKey: String, CaseIterable {
         switch self {
         case .size: return "Size"
         case .name: return "Name"
-        case .created: return "Created"
+        case .created: return "Bundle Date"
         case .modified: return "Modified"
         case .used: return "Last Used"
         case .architecture: return "Arch"

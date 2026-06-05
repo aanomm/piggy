@@ -25,11 +25,38 @@ enum AppRemover {
         let totalFreed: Int64
     }
 
-    static func findRelatedFiles(for app: AppInfo) -> [RelatedFile] {
+    struct RelatedFileProgress {
+        let checkedCount: Int
+        let matchedCount: Int
+        let currentURL: URL
+
+        var statusSummary: String {
+            "\(checkedCount) places checked · \(matchedCount) crumbs found · \(currentURL.lastPathComponent)"
+        }
+    }
+
+    struct TrashProgress {
+        let phase: String
+        let completedCount: Int
+        let totalCount: Int?
+        let currentURL: URL?
+
+        var statusSummary: String {
+            let countSummary = totalCount.map { " \(completedCount)/\($0)" } ?? ""
+            let pathSummary = currentURL.map { " · \($0.lastPathComponent)" } ?? ""
+            return "\(phase)\(countSummary)\(pathSummary)"
+        }
+    }
+
+    static func findRelatedFiles(
+        for app: AppInfo,
+        progress: ((RelatedFileProgress) -> Void)? = nil
+    ) -> [RelatedFile] {
         guard let bundleID = app.bundleIdentifier else { return [] }
 
         let home = NSHomeDirectory()
         var files: [RelatedFile] = []
+        var checkedCount = 0
 
         let searchPaths: [(String, String)] = [
             ("\(home)/Library/Preferences/\(bundleID).plist", "Preferences"),
@@ -43,6 +70,7 @@ enum AppRemover {
 
         for (pathStr, category) in searchPaths {
             let url = URL(fileURLWithPath: pathStr)
+            checkedCount += 1
             let fm = FileManager.default
             var isDir: ObjCBool = false
             if fm.fileExists(atPath: url.path, isDirectory: &isDir) {
@@ -51,16 +79,31 @@ enum AppRemover {
                     files.append(RelatedFile(path: url, size: size, category: category))
                 }
             }
+            progress?(
+                RelatedFileProgress(
+                    checkedCount: checkedCount,
+                    matchedCount: files.count,
+                    currentURL: url
+                )
+            )
         }
 
         let cookiePattern = "\(home)/Library/HTTPStorages/\(bundleID).binarycookies"
         let cookieURL = URL(fileURLWithPath: cookiePattern)
+        checkedCount += 1
         if FileManager.default.fileExists(atPath: cookieURL.path) {
             let size = SizeCalculator.calculateSize(of: cookieURL)
             if size > 0 {
                 files.append(RelatedFile(path: cookieURL, size: size, category: "HTTP Cookies"))
             }
         }
+        progress?(
+            RelatedFileProgress(
+                checkedCount: checkedCount,
+                matchedCount: files.count,
+                currentURL: cookieURL
+            )
+        )
 
         let groupContainersDir = URL(fileURLWithPath: "\(home)/Library/Group Containers")
         if let groupContents = try? FileManager.default.contentsOfDirectory(
@@ -69,6 +112,7 @@ enum AppRemover {
             options: .skipsHiddenFiles
         ) {
             for groupURL in groupContents {
+                checkedCount += 1
                 let groupName = groupURL.lastPathComponent
                 if groupName.contains(bundleID) || isGroupRelated(groupName, to: bundleID) {
                     let size = SizeCalculator.calculateSize(of: groupURL)
@@ -76,6 +120,13 @@ enum AppRemover {
                         files.append(RelatedFile(path: groupURL, size: size, category: "Group Container"))
                     }
                 }
+                progress?(
+                    RelatedFileProgress(
+                        checkedCount: checkedCount,
+                        matchedCount: files.count,
+                        currentURL: groupURL
+                    )
+                )
             }
         }
 
@@ -89,8 +140,21 @@ enum AppRemover {
         return groupID.hasPrefix(teamID)
     }
 
-    static func delete(app: AppInfo, includeRelated: Bool) -> DeletionResult {
-        let related = findRelatedFiles(for: app)
+    static func delete(
+        app: AppInfo,
+        includeRelated: Bool,
+        progress: ((TrashProgress) -> Void)? = nil
+    ) -> DeletionResult {
+        let related = findRelatedFiles(for: app) { relatedProgress in
+            progress?(
+                TrashProgress(
+                    phase: "sniffing related crumbs",
+                    completedCount: relatedProgress.checkedCount,
+                    totalCount: nil,
+                    currentURL: relatedProgress.currentURL
+                )
+            )
+        }
         let relatedCandidates = related.map { RemovalCandidate(path: $0.path, size: $0.size, category: $0.category) }
         let plan = RemovalPlanner.plan(app: app, relatedFiles: relatedCandidates, includeRelated: includeRelated)
         let skipped = plan.skippedRelatedFiles.map(toRelatedFile)
@@ -111,27 +175,52 @@ enum AppRemover {
         nonisolated(unsafe) var failureReason: String?
         let ws = NSWorkspace.shared
 
+        progress?(
+            TrashProgress(
+                phase: "moving app to Trash",
+                completedCount: 0,
+                totalCount: 1,
+                currentURL: app.path
+            )
+        )
         let semaphore = DispatchSemaphore(value: 0)
         ws.recycle([app.path]) { _, error in
             if let error = error {
                 failureReason = error.localizedDescription
-                fputs("piggy: failed to trash main app: \(error.localizedDescription)\n", stderr)
+                fputs("piggy: macOS could not move the app to Trash: \(error.localizedDescription)\n", stderr)
             } else {
                 didTrashMain = true
             }
             semaphore.signal()
         }
         semaphore.wait()
+        progress?(
+            TrashProgress(
+                phase: didTrashMain ? "app moved to Trash" : "app move failed",
+                completedCount: didTrashMain ? 1 : 0,
+                totalCount: 1,
+                currentURL: app.path
+            )
+        )
 
         var trashedRelated: [RelatedFile] = []
         if didTrashMain && includeRelated {
-            for candidate in plan.relatedFilesToTrash {
+            let totalRelated = plan.relatedFilesToTrash.count
+            for (index, candidate) in plan.relatedFilesToTrash.enumerated() {
                 let relatedFile = toRelatedFile(candidate)
+                progress?(
+                    TrashProgress(
+                        phase: "moving related crumbs to Trash",
+                        completedCount: index,
+                        totalCount: totalRelated,
+                        currentURL: relatedFile.path
+                    )
+                )
                 let sem = DispatchSemaphore(value: 0)
                 nonisolated(unsafe) var didTrashRelated = false
                 ws.recycle([relatedFile.path]) { _, error in
                     if let error = error {
-                        fputs("piggy: skipped related file \(relatedFile.path.path): \(error.localizedDescription)\n", stderr)
+                        fputs("piggy: skipped this related app crumb to stay safe: \(relatedFile.path.path) (\(error.localizedDescription))\n", stderr)
                     } else {
                         didTrashRelated = true
                     }
@@ -139,6 +228,14 @@ enum AppRemover {
                 }
                 sem.wait()
                 if didTrashRelated { trashedRelated.append(relatedFile) }
+                progress?(
+                    TrashProgress(
+                        phase: "moving related crumbs to Trash",
+                        completedCount: index + 1,
+                        totalCount: totalRelated,
+                        currentURL: relatedFile.path
+                    )
+                )
             }
         }
 
@@ -158,12 +255,23 @@ enum AppRemover {
     }
 
     @discardableResult
-    static func deleteRelatedFiles(_ files: [RelatedFile]) -> RelatedDeletionResult {
+    static func deleteRelatedFiles(
+        _ files: [RelatedFile],
+        progress: ((TrashProgress) -> Void)? = nil
+    ) -> RelatedDeletionResult {
         let ws = NSWorkspace.shared
         var trashed: [RelatedFile] = []
         var skipped: [RelatedFile] = []
 
-        for file in files {
+        for (index, file) in files.enumerated() {
+            progress?(
+                TrashProgress(
+                    phase: "checking crumb safety",
+                    completedCount: index,
+                    totalCount: files.count,
+                    currentURL: file.path
+                )
+            )
             let assessment = SafetyClassifier.assess(path: file.path.path)
             guard assessment.level < .sensitive else {
                 skipped.append(file)
@@ -178,6 +286,14 @@ enum AppRemover {
             }
             sem.wait()
             if didTrash { trashed.append(file) }
+            progress?(
+                TrashProgress(
+                    phase: "moving crumbs to Trash",
+                    completedCount: index + 1,
+                    totalCount: files.count,
+                    currentURL: file.path
+                )
+            )
         }
 
         return RelatedDeletionResult(

@@ -14,46 +14,44 @@ enum Banner {
 
     static let art = #"""
 \#(dim)╭────────────────────────────────────────────────────────────────────────╮
-\#(pink)│  ██████╗ ██╗ ██████╗  ██████╗ ██╗   ██╗   \#(blush)macOS bloat radar\#(dim)            │
-\#(pink)│  ██╔══██╗██║██╔════╝ ██╔════╝ ╚██╗ ██╔╝   \#(mauve)apps • agents • crumbs\#(dim)       │
+\#(pink)│  ██████╗ ██╗ ██████╗  ██████╗ ██╗   ██╗   \#(blush)friendly Mac tidy helper\#(dim)     │
+\#(pink)│  ██╔══██╗██║██╔════╝ ██╔════╝ ╚██╗ ██╔╝   \#(mauve)look • weigh • explain\#(dim)        │
 \#(pink)│  ██████╔╝██║██║  ███╗██║  ███╗ ╚████╔╝                                 │
-\#(pink)│  ██╔═══╝ ██║██║   ██║██║   ██║  ╚██╔╝                                  │
-\#(pink)│  ██║     ██║╚██████╔╝╚██████╔╝   ██║        \#(bold)\#(pink)SNIFF. SORT. SAFELY CLEAN.\#(reset)\#(dim) │
-\#(pink)│  ╚═╝     ╚═╝ ╚═════╝  ╚═════╝    ╚═╝                                   │
+\#(pink)│  ██╔═══╝ ██║██║   ██║██║   ██║  ╚██╔╝        \#(bold)\#(pink)NO SURPRISE DELETES\#(reset)\#(dim)       │
+\#(pink)│  ██║     ██║╚██████╔╝╚██████╔╝   ██║                                    │
+\#(pink)│  ╚═╝     ╚═╝ ╚═════╝  ╚═════╝    ╚═╝                                    │
 \#(dim)│                                                                        │
-\#(mauve)│              .·°¯°·.        \#(dim)╭───────╮\#(mauve)        .·°¯°·.                   │
-\#(mauve)│          ▄▓██████████▓▄     \#(dim)│  GB   │\#(mauve)     ▄▓██████████▓▄               │
-\#(mauve)│        ▄██▀  \#(blush)◖◗\#(mauve)      \#(blush)◖◗\#(mauve)  ▀██▄   \#(dim)╰─┬─┬─╯\#(mauve)   ▄██▀  \#(blush)✦\#(mauve)       ▀██▄           │
-\#(mauve)│       ██      ▄████▄      ██    \#(dim)  │ │\#(mauve)    ██   cache crumbs  ██         │
-\#(mauve)│       ██   ▄▄█  ▐▌  █▄▄   ██    \#(dim)  │ │\#(mauve)    ██   old helpers   ██         │
-\#(mauve)│        ▀██▄ ▀█▄▄▐▌▄▄█▀ ▄██▀     \#(dim)  │ │\#(mauve)     ▀██▄           ▄██▀          │
-\#(mauve)│           ▀▀▓██▄▄▄▄██▓▀▀        \#(dim) ▄┴─┴▄\#(mauve)       ▀▀▓███████▓▀▀             │
-\#(dim)│                    \#(blush)╰─ a tiny terminal truffle hound for your disk ─╯\#(dim)   │
+\#(mauve)│         .-""""""""-.           \#(dim)╭───────╮\#(mauve)        \#(blush)cache crumbs\#(mauve)       │
+\#(mauve)│       .'   \#(blush)o\#(mauve)      \#(blush)o\#(mauve)   '.         \#(dim)│  GB   │\#(mauve)        \#(blush)old helpers\#(mauve)       │
+\#(mauve)│      /        \#(blush)(oo)\#(mauve)       \       \#(dim)╰───┬───╯\#(mauve)        \#(blush)big folders\#(mauve)       │
+\#(mauve)│     |      .-.___.-.      |          \#(dim)│\#(mauve)                           │
+\#(mauve)│      \       \#(blush)'---'\#(mauve)       /          \#(dim)│\#(mauve)      \#(pink)sniff first, ask before trash\#(mauve) │
+\#(mauve)│       '._             _.'         \#(dim)▄┴▄\#(mauve)                          │
+\#(dim)│             \#(blush)╰─ gentle terminal playground for finding space ─╯\#(dim)      │
 \#(dim)╰────────────────────────────────────────────────────────────────────────╯\#(reset)
 
 """#
 
     static let mini = #"""
 \#(pink) ██████╗ ██╗ ██████╗  ██████╗ ██╗   ██╗
-\#(pink) ██╔══██╗██║██╔════╝ ██╔════╝ ╚██╗ ██╔╝
-\#(pink) ██████╔╝██║██║  ███╗██║  ███╗ ╚████╔╝
+\#(pink) ██╔══██╗██║██╔════╝ ██╔════╝ ╚██╗ ██╔╝   \#(blush)friendly Mac tidy helper\#(reset)
+\#(pink) ██████╔╝██║██║  ███╗██║  ███╗ ╚████╔╝    \#(mauve)look • weigh • explain\#(reset)
 \#(pink) ██╔═══╝ ██║██║   ██║██║   ██║  ╚██╔╝
-\#(pink) ██║     ██║╚██████╔╝╚██████╔╝   ██║
+\#(pink) ██║     ██║╚██████╔╝╚██████╔╝   ██║      \#(pink)no surprise deletes\#(reset)
 \#(pink) ╚═╝     ╚═╝ ╚═════╝  ╚═════╝    ╚═╝
-\#(mauve)       ▄▓████████▓▄      \#(dim)╭────╮\#(reset)
-\#(mauve)     ▄██▀ \#(blush)◖◗\#(mauve)    \#(blush)◖◗\#(mauve) ▀██▄    \#(dim)│ GB │\#(reset)
-\#(mauve)    ██    ▄████▄    ██   \#(pink)macOS bloat radar\#(reset)
-\#(mauve)     ▀██▄ ▀█▐▌█▀ ▄██▀    \#(mauve)sniff • sort • clean safely\#(reset)
-\#(mauve)        ▀▓██▄▄██▓▀
+\#(mauve)        .-""""-.
+\#(mauve)      .' \#(blush)o\#(mauve)  \#(blush)o\#(mauve) '.     \#(dim)cache crumbs • big folders\#(reset)
+\#(mauve)     /    \#(blush)(oo)\#(mauve)   \    \#(dim)sniff first, ask before trash\#(reset)
+\#(mauve)     \   \#(blush)'---'\#(mauve)   /
+\#(mauve)      '.___.__.'
 
 """#
 
     static let micro = #"""
-\#(pink)  PIGGY\#(reset)  \#(dim)macOS bloat radar\#(reset)
-\#(mauve)  ▄▓██▓▄   \#(dim)╭──╮\#(reset)
-\#(mauve) ██ \#(blush)◖◗◖◗\#(mauve) ██  \#(dim)│GB│\#(reset)
-\#(mauve)  ▀█ ▐▌ █▀  \#(pink)sniff • sort • clean safely\#(reset)
-\#(mauve)    ▀██▀
+\#(pink)  PIGGY\#(reset)  \#(dim)friendly Mac tidy helper\#(reset)
+\#(mauve)  .-""-.   \#(dim)looks, weighs, explains\#(reset)
+\#(mauve) ( \#(blush)o\#(mauve)  \#(blush)o\#(mauve) )  \#(pink)no surprise deletes\#(reset)
+\#(mauve)  ( \#(blush)oo\#(mauve) )
 
 """#
 
@@ -219,5 +217,92 @@ enum Spinner {
         var lines = frame.map { "  \(mauve)\($0)\(reset) \(dim)searching /Applications\(reset)" }
         lines.append("  \(bold)\(pink)PIGGY\(reset)  [\(bar)] \(blush)\(current)/\(total)\(reset)  \(mauve)\(shortName)\(reset)")
         return lines
+    }
+}
+
+// MARK: - Lightweight CLI Activity
+
+final class TerminalActivityIndicator {
+    private let action: String
+    private let doneLabel: String
+    private let enabled: Bool
+    private let colorEnabled: Bool
+    private let frames = ["|", "/", "-", "\\"]
+    private let verbs = ["sniffing", "checking", "weighing", "sorting"]
+    private let startedAt = Date()
+    private var lastRenderedAt = Date.distantPast
+    private var renderCount = 0
+    private var latestStatus: String?
+
+    init(action: String, doneLabel: String = "Done") {
+        self.action = action
+        self.doneLabel = doneLabel
+
+        let environment = ProcessInfo.processInfo.environment
+        let progressValue = environment["PIGGY_PROGRESS"]?.lowercased()
+        let forced = ["1", "true", "yes", "always"].contains(progressValue)
+        let disabled = ["0", "false", "no", "never"].contains(progressValue)
+
+        self.enabled = !disabled && (
+            forced || (
+                isatty(STDERR_FILENO) == 1 &&
+                environment["TERM"] != "dumb"
+            )
+        )
+        self.colorEnabled = TerminalStyle.colorsEnabled(environment: environment, stdoutIsTTY: isatty(STDERR_FILENO) == 1)
+    }
+
+    func start(_ status: String? = nil) {
+        latestStatus = status
+        render(status: status, force: true)
+    }
+
+    func update(_ status: String? = nil) {
+        latestStatus = status ?? latestStatus
+        render(status: latestStatus, force: false)
+    }
+
+    func finish(_ summary: String? = nil) {
+        guard enabled else { return }
+        let elapsed = formatElapsed(max(0.01, Date().timeIntervalSince(startedAt)))
+        let status = summary ?? latestStatus
+        let suffix = status.map { " - \(paint($0, "38;5;179"))" } ?? ""
+        write("\r\u{001B}[2K\(paint(doneLabel, "38;5;151;1"))\(suffix) \(paint("in \(elapsed)", "38;5;240"))\n")
+    }
+
+    private func render(status: String?, force: Bool) {
+        guard enabled else { return }
+
+        let now = Date()
+        guard force || renderCount == 0 || now.timeIntervalSince(lastRenderedAt) >= 0.08 else { return }
+
+        lastRenderedAt = now
+        let frame = frames[renderCount % frames.count]
+        let verb = verbs[(renderCount / 8) % verbs.count]
+        renderCount += 1
+
+        let suffix = status.map { " - \(paint(Self.clipped($0, to: 72), "38;5;179"))" } ?? ""
+        write("\r\u{001B}[2K\(paint(frame, "38;5;141")) \(paint(action, "38;5;175;1")) - \(paint(verb, "38;5;114"))\(suffix)")
+    }
+
+    static func clipped(_ text: String, to maxLength: Int) -> String {
+        guard text.count > maxLength else { return text }
+        return "..." + text.suffix(max(0, maxLength - 3))
+    }
+
+    private func formatElapsed(_ seconds: TimeInterval) -> String {
+        if seconds < 10 {
+            return String(format: "%.1fs", seconds)
+        }
+        return "\(Int(seconds.rounded()))s"
+    }
+
+    private func write(_ text: String) {
+        FileHandle.standardError.write(Data(text.utf8))
+    }
+
+    private func paint(_ text: String, _ code: String) -> String {
+        guard colorEnabled else { return text }
+        return "\u{001B}[\(code)m\(text)\u{001B}[0m"
     }
 }

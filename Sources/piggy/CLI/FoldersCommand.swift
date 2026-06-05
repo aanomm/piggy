@@ -5,8 +5,8 @@ import PiggyKit
 struct Folders: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "folders",
-        abstract: "Find the biggest folders under a path, with file counts",
-        discussion: "Non-destructive folder audit. By default Piggy ranks immediate child folders and skips hidden files/folders. Use --depth for nested folder findings."
+        abstract: "Show which folders are taking up the most space.",
+        discussion: "Piggy looks inside one folder, weighs the folders inside it, and shows the biggest ones first. Piggy does not change anything."
     )
 
     @Argument(help: "Root folder to inspect. Defaults to the current directory.")
@@ -30,7 +30,7 @@ struct Folders: ParsableCommand {
     func run() throws {
         let rootURL = URL(fileURLWithPath: selectedRootPath()).standardizedFileURL
         guard isDirectory(rootURL) else {
-            print("Piggy could not find that folder: \(rootURL.path)")
+            print("🐽 Piggy could not find that folder: \(rootURL.path)")
             throw ExitCode.failure
         }
 
@@ -39,7 +39,7 @@ struct Folders: ParsableCommand {
             do {
                 minimumBytes = try ByteSizeParser.parse(minSize)
             } catch {
-                print("Piggy could not understand --min-size '\(minSize)'. Try values like 500mb or 2gb.")
+                print("🐽 Piggy could not understand --min-size '\(minSize)'. Try a simple size like 500mb or 2gb.")
                 throw ExitCode.failure
             }
         } else {
@@ -48,16 +48,26 @@ struct Folders: ParsableCommand {
 
         printHeader(rootURL: rootURL, minimumBytes: minimumBytes)
 
+        let indicator = TerminalActivityIndicator(action: "Piggy is sniffing folders", doneLabel: "Folder sniff complete")
+        indicator.start("warming up for \(friendlyRootName(rootURL))")
         let findings = FolderScanner.scan(
             root: rootURL,
             maxDepth: depth,
             includeHidden: includeHidden,
-            minimumBytes: minimumBytes
+            minimumBytes: minimumBytes,
+            progress: { progress in
+                let path = TerminalActivityIndicator.clipped(
+                    displayPath(progress.currentURL, rootURL: rootURL),
+                    to: 54
+                )
+                indicator.update("\(progress.statusSummary)  ·  \(path)")
+            }
         )
+        indicator.finish()
         let shown = Array(findings.prefix(max(0, limit)))
 
         guard !shown.isEmpty else {
-            print("No matching folders found. Tiny truffle field. 🐽")
+            print("🐽 Piggy did not find any folders big enough to show.")
             print("")
             return
         }
@@ -78,39 +88,51 @@ struct Folders: ParsableCommand {
 
     private func printHeader(rootURL: URL, minimumBytes: Int64) {
         print("")
-        print("🐷 Piggy Folder Audit")
-        print("─────────────────────")
-        print("Scope: non-destructive scan of folders under \(displayRoot(rootURL))")
-        print("Disk:  Combined size of each folder's visible contents.")
-        print("Files: Regular files counted recursively inside each folder.")
+        print("\(CLITheme.title("🐽 Oink! Piggy is sniffing \"\(friendlyRootName(rootURL))\""))")
+        print(CLITheme.separator("─────────────────────"))
+        print("\(CLITheme.purple("•")) Looking inside: \(CLITheme.path(displayRoot(rootURL)))")
+        print("\(CLITheme.purple("•")) Full path: \(CLITheme.dim(rootURL.path))")
+        print("\(CLITheme.purple("•")) Just looking: Piggy will not eat, delete, or edit anything.")
+        print("\(CLITheme.purple("•")) Sniffing and sorting folders by how much space their contents use.")
+        print("\(CLITheme.purple("•")) Hidden Mac files stay tucked away unless you ask for them.")
         if depth > 1 {
-            print("Note:  Nested rows may overlap when --depth is greater than 1.")
+            print("\(CLITheme.purple("•")) Peeking deeper: Piggy will also show folders inside folders.")
         }
         if minimumBytes > 0 {
-            print("Filter: folders at least \(ByteFormat.string(minimumBytes))")
+            print("\(CLITheme.purple("•")) Only showing folders at least \(CLITheme.gold(ByteFormat.string(minimumBytes))).")
         }
         if includeHidden {
-            print("Hidden: included")
+            print("\(CLITheme.purple("•")) Hidden Mac files are included this time.")
         }
         print("")
     }
 
     private func printTable(_ folders: [FolderFinding], rootURL: URL) {
         let numberWidth = max(2, String(folders.count).count + 1)
+        let shareWidth = 7
+        let barWidth = max(12, min(30, Banner.currentTerminalWidth() / 4))
         let sizeWidth = 11
         let filesWidth = 7
         let nestedWidth = 7
+        let totalBytes = folders.reduce(Int64(0)) { $0 + $1.totalBytes }
+        let maxBytes = folders.map(\.totalBytes).max() ?? 0
 
-        let header = "\(pad("#", numberWidth))  \(pad("Size", sizeWidth))  \(pad("Files", filesWidth))  \(pad("Folders", nestedWidth))  Folder"
-        print(header)
-        print(String(repeating: "─", count: header.count))
+        print("\(CLITheme.title("Biggest folder snacks")) \(CLITheme.dim("|")) \(CLITheme.label("Shown pile:")) \(CLITheme.gold(ByteFormat.string(totalBytes)))")
+
+        let header = "\(pad("#", numberWidth))  \(pad("Share", shareWidth))  \(pad("Size bar", barWidth))  \(pad("Space", sizeWidth))  \(pad("Files", filesWidth))  \(pad("Folders", nestedWidth))  Folder"
+        print(CLITheme.label(header))
+        print(CLITheme.separator(String(repeating: "─", count: header.count)))
 
         for (index, folder) in folders.enumerated() {
-            let number = pad("\(index + 1).", numberWidth)
-            let size = pad(folder.formattedSize, sizeWidth)
+            let number = CLITheme.rank(pad("\(index + 1).", numberWidth), index: index)
+            let share = totalBytes > 0 ? Double(folder.totalBytes) / Double(totalBytes) : 0
+            let shareText = CLITheme.rank(pad(String(format: "%.1f%%", share * 100), shareWidth), index: index)
+            let bar = CLITheme.bar(value: folder.totalBytes, max: maxBytes, width: barWidth, index: index)
+            let size = CLITheme.size(pad(folder.formattedSize, sizeWidth), bytes: folder.totalBytes)
             let files = pad("\(folder.fileCount)", filesWidth)
             let nested = pad("\(folder.nestedFolderCount)", nestedWidth)
-            print("\(number)  \(size)  \(files)  \(nested)  \(displayPath(folder.url, rootURL: rootURL))")
+            let path = CLITheme.path(displayPath(folder.url, rootURL: rootURL))
+            print("\(number)  \(shareText)  \(bar)  \(size)  \(files)  \(nested)  \(path)")
         }
     }
 
@@ -118,16 +140,27 @@ struct Folders: ParsableCommand {
         let totalBytes = allFindings.reduce(Int64(0)) { $0 + $1.totalBytes }
         let totalFiles = allFindings.reduce(0) { $0 + $1.fileCount }
         print("")
-        print("Folders scanned \(allFindings.count) | shown \(shownCount) | files counted \(totalFiles) | folder disk \(ByteFormat.string(totalBytes))")
-        print("Safe next commands:")
-        print("  piggy folders ~/Downloads --limit 25")
-        print("  piggy folders ~/Library --min-size 1gb")
-        print("  piggy mac audit")
+        print("\(CLITheme.label("Piggy sniffed")) \(allFindings.count) folders \(CLITheme.dim("|")) \(CLITheme.label("showed")) \(shownCount) \(CLITheme.dim("|")) \(CLITheme.label("counted")) \(totalFiles) files \(CLITheme.dim("|")) \(CLITheme.label("space shown")) \(CLITheme.gold(ByteFormat.string(totalBytes)))")
+        print(CLITheme.section("Try another gentle sniff:"))
+        print("  \(CLITheme.command("piggy folders ~/Downloads --limit 25"))")
+        print("  \(CLITheme.command("piggy folders ~/Library --min-size 1gb"))")
+        print("  \(CLITheme.command("piggy mac audit"))")
         print("")
     }
 
     private func displayRoot(_ url: URL) -> String {
         displayPath(url, rootURL: nil)
+    }
+
+    private func friendlyRootName(_ url: URL) -> String {
+        let name = url.lastPathComponent
+        if name.isEmpty {
+            return url.path
+        }
+        if url.standardizedFileURL.path == FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path {
+            return "Home"
+        }
+        return name
     }
 
     private func displayPath(_ url: URL, rootURL: URL?) -> String {
