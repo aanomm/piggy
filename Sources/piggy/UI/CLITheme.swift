@@ -16,6 +16,7 @@ enum CLITheme {
     static func warning(_ text: String) -> String { paint(text, "38;5;215;1") }
     static func danger(_ text: String) -> String { paint(text, "38;5;203;1") }
     static func ok(_ text: String) -> String { paint(text, "38;5;151") }
+    static func bold(_ text: String) -> String { paint(text, "1") }
 
     static func separator(_ text: String) -> String {
         paint(text, "38;5;238")

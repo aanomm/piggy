@@ -426,13 +426,13 @@ struct Search: ParsableCommand {
             return
         }
 
-        printSearchResults(results, usedTechnicalFallback: matches.usedTechnicalFallback)
+        printSearchResults(results, query: query, usedTechnicalFallback: matches.usedTechnicalFallback)
     }
 
-    private func printSearchResults(_ results: [AppInfo], usedTechnicalFallback: Bool) {
+    private func printSearchResults(_ results: [AppInfo], query: String, usedTechnicalFallback: Bool) {
         print("")
         let appWord = results.count == 1 ? "app" : "apps"
-        print(CLITheme.title("🐽 Piggy found \(results.count) matching \(appWord)"))
+        print(CLITheme.title("🐽 Piggy found \(results.count) \(appWord) matching \"\(query)\""))
         print(CLITheme.separator("──────────────────────────"))
         if usedTechnicalFallback {
             print("\(CLITheme.purple("•")) Piggy did not find that in app names, so it checked hidden Mac IDs and descriptions.")
@@ -440,35 +440,51 @@ struct Search: ParsableCommand {
         print("")
 
         for (index, app) in results.enumerated() {
-            print("  \(CLITheme.rank("\(index + 1).", index: index)) \(CLITheme.path(app.displayName))")
-            print("     \(CLITheme.label("What it is:"))   \(app.purpose ?? "-")")
-            print("     \(CLITheme.label("File size:"))    \(CLITheme.size(app.formattedSize, bytes: app.size))")
-            print("     \(CLITheme.label("Location:"))     \(CLITheme.path(displayPath(app.path)))")
-            if let bundleID = app.bundleIdentifier {
-                print("     \(CLITheme.label("Bundle ID:"))   \(bundleID)")
+            print("  \(CLITheme.rank("\(index + 1).", index: index)) \(highlightedDisplayName(app.displayName, query: query))")
+            print("     \(CLITheme.label("File size:"))     \(CLITheme.size(app.formattedSize, bytes: app.size))        \(CLITheme.label("Installed via:")) \(styledOriginLabel(for: app))")
+            if let modified = app.modificationDate {
+                print("     \(CLITheme.label("Updated:"))       \(relativeLabel(modified))")
             }
             if let shortVersion = app.shortVersion {
                 let build = app.bundleVersion.map { " (build \($0))" } ?? ""
-                print("     \(CLITheme.label("Version:"))     \(CLITheme.gold(shortVersion + build))")
+                print("     \(CLITheme.label("Version:"))       \(CLITheme.gold(shortVersion + build))")
             }
-            print("     \(CLITheme.label("Chip:"))        \(styledArchLabel(for: app))")
-            print("     \(CLITheme.label("Scope:"))       \(scopeDescription(for: app))")
-            print("     \(CLITheme.label("From:"))        \(styledOriginLabel(for: app))")
+            print("     \(CLITheme.label("Description:"))   \(app.purpose ?? "-")")
+            print("     \(CLITheme.label("Location:"))      \(CLITheme.path(displayPath(app.path)))")
+            print("     \(CLITheme.label("Scope:"))         \(scopeDescription(for: app))")
+            print("     \(CLITheme.label("Chip:"))          \(styledArchLabel(for: app))")
+            if let bundleID = app.bundleIdentifier {
+                print("     \(CLITheme.label("Bundle ID:"))     \(bundleID)")
+            }
             if let created = app.creationDate {
-                print("     \(CLITheme.label("Bundle date:")) \(relativeLabel(created)) (app updates can make an old app look newly added)")
+                print("     \(CLITheme.label("Bundle date:"))   \(relativeLabel(created)) (app updates can make an old app look newly added)")
             }
-            if let modified = app.modificationDate {
-                print("     \(CLITheme.label("Updated:"))     \(relativeLabel(modified))")
-            }
-            if let lastUsed = app.lastUsedDate {
-                print("     \(CLITheme.label("Last opened:")) \(relativeLabel(lastUsed))")
-            }
-            print("     \(CLITheme.label("Helpers:"))     \(app.agentCount > 0 ? CLITheme.warning("\(app.agentCount)") : "0")")
+            print("     \(CLITheme.label("Helpers:"))       \(app.agentCount > 0 ? CLITheme.warning("\(app.agentCount)") : "0")")
             if app.isQuarantined {
-                print("     \(CLITheme.warning("Downloaded:"))  quarantine flag still attached")
+                print("     \(CLITheme.warning("Downloaded:"))    quarantine flag still attached")
             }
             if index < results.count - 1 { print("") }
         }
+    }
+
+    private func highlightedDisplayName(_ name: String, query: String) -> String {
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !needle.isEmpty else { return CLITheme.path(name) }
+
+        var pieces: [String] = []
+        var cursor = name.startIndex
+        while cursor < name.endIndex,
+              let match = name.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive], range: cursor..<name.endIndex) {
+            if cursor < match.lowerBound {
+                pieces.append(CLITheme.path(String(name[cursor..<match.lowerBound])))
+            }
+            pieces.append(CLITheme.bold(CLITheme.path(String(name[match]))))
+            cursor = match.upperBound
+        }
+        if cursor < name.endIndex {
+            pieces.append(CLITheme.path(String(name[cursor..<name.endIndex])))
+        }
+        return pieces.joined()
     }
 
     private func styledArchLabel(for app: AppInfo) -> String {
