@@ -134,7 +134,7 @@ struct List: ParsableCommand {
         let originW = 10
         let verW = 12
 
-        let header = "  \(formatPadding("#", countW))\(formatPadding("App", nameW))  \(formatPadding("Size", sizeW))  \(formatPadding("Bundle date", dateW))  \(formatPadding("Chip", archW))  \(formatPadding("Scope", sourceW))  \(formatPadding("From", originW))  \(formatPadding("Version", verW))  Helpers  Description"
+        let header = "  \(formatPadding("#", countW))\(formatPadding("App", nameW))  \(formatPadding("File size", sizeW))  \(formatPadding("Bundle date", dateW))  \(formatPadding("Chip", archW))  \(formatPadding("Scope", sourceW))  \(formatPadding("From", originW))  \(formatPadding("Version", verW))  Helpers  Description"
         let sep = "  " + String(repeating: "─", count: header.count - 2)
         print(CLITheme.label(header))
         print(CLITheme.separator(sep))
@@ -269,7 +269,7 @@ struct Info: ParsableCommand {
         if let sv = info.shortVersion { print("  \(CLITheme.label("Version:"))          \(CLITheme.gold(sv))") }
         if let bv = info.bundleVersion { print("  \(CLITheme.label("Build:"))            \(bv)") }
         if let minOS = info.minOSVersion { print("  \(CLITheme.label("Needs macOS:"))      \(minOS) or newer") }
-        print("  \(CLITheme.label("Space it uses:"))    \(CLITheme.size(info.formattedSize, bytes: info.size))")
+        print("  \(CLITheme.label("File size:"))       \(CLITheme.size(info.formattedSize, bytes: info.size))")
         print("  \(CLITheme.label("Chip type:"))        \(styledArchLabel(for: info))")
         print("  \(CLITheme.label("Came from:"))        \(styledOriginLabel(for: info))")
         print("  \(CLITheme.label("Apple trust check:")) \(info.isAppleSigned ? CLITheme.green("passed") : CLITheme.warning("not Apple-signed"))")
@@ -431,19 +431,19 @@ struct Search: ParsableCommand {
 
     private func printSearchResults(_ results: [AppInfo], usedTechnicalFallback: Bool) {
         print("")
-        print(CLITheme.title("🐽 Piggy found matching apps"))
+        let appWord = results.count == 1 ? "app" : "apps"
+        print(CLITheme.title("🐽 Piggy found \(results.count) matching \(appWord)"))
         print(CLITheme.separator("──────────────────────────"))
         if usedTechnicalFallback {
             print("\(CLITheme.purple("•")) Piggy did not find that in app names, so it checked hidden Mac IDs and descriptions.")
         }
-        print("\(CLITheme.purple("•")) Search shows full paths and descriptions so nothing important gets chopped off.")
-        print("\(CLITheme.purple("•")) Bundle date is the app bundle file date; app updates can make an old app look newly added.")
         print("")
 
         for (index, app) in results.enumerated() {
             print("  \(CLITheme.rank("\(index + 1).", index: index)) \(CLITheme.path(app.displayName))")
-            print("     \(CLITheme.label("Size:"))        \(CLITheme.size(app.formattedSize, bytes: app.size))")
-            print("     \(CLITheme.label("Path:"))        \(CLITheme.path(displayPath(app.path)))")
+            print("     \(CLITheme.label("What it is:"))   \(app.purpose ?? "-")")
+            print("     \(CLITheme.label("File size:"))    \(CLITheme.size(app.formattedSize, bytes: app.size))")
+            print("     \(CLITheme.label("Location:"))     \(CLITheme.path(displayPath(app.path)))")
             if let bundleID = app.bundleIdentifier {
                 print("     \(CLITheme.label("Bundle ID:"))   \(bundleID)")
             }
@@ -455,7 +455,7 @@ struct Search: ParsableCommand {
             print("     \(CLITheme.label("Scope:"))       \(scopeDescription(for: app))")
             print("     \(CLITheme.label("From:"))        \(styledOriginLabel(for: app))")
             if let created = app.creationDate {
-                print("     \(CLITheme.label("Bundle date:")) \(relativeLabel(created))")
+                print("     \(CLITheme.label("Bundle date:")) \(relativeLabel(created)) (app updates can make an old app look newly added)")
             }
             if let modified = app.modificationDate {
                 print("     \(CLITheme.label("Updated:"))     \(relativeLabel(modified))")
@@ -467,7 +467,6 @@ struct Search: ParsableCommand {
             if app.isQuarantined {
                 print("     \(CLITheme.warning("Downloaded:"))  quarantine flag still attached")
             }
-            print("     \(CLITheme.label("What it is:"))   \(app.purpose ?? "-")")
             if index < results.count - 1 { print("") }
         }
     }
