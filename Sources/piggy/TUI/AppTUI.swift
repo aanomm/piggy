@@ -762,7 +762,7 @@ private func showHelp() {
       Esc                Clear filter / clear marks
 
     Sort (press letter, again to toggle asc/desc)
-      s  Size     n  Name    c  Created    m  Modified
+      s  Size     n  Name    c  Bundled    m  Modified
       u  Used     a  Arch    v  Version    o  Origin
       b  Agents
 

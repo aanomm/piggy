@@ -48,7 +48,7 @@ struct Folders: ParsableCommand {
 
         printHeader(rootURL: rootURL, minimumBytes: minimumBytes)
 
-        let indicator = TerminalActivityIndicator(action: "Piggy is sniffing folders", doneLabel: "Folder sniff complete")
+        let indicator = TerminalActivityIndicator(action: "Piggy is rooting for fat folders", doneLabel: "Folder truffle hunt complete")
         indicator.start("warming up for \(friendlyRootName(rootURL))")
         let findings = FolderScanner.scan(
             root: rootURL,
@@ -88,7 +88,7 @@ struct Folders: ParsableCommand {
 
     private func printHeader(rootURL: URL, minimumBytes: Int64) {
         print("")
-        print("\(CLITheme.title("🐽 Oink! Piggy is sniffing \"\(friendlyRootName(rootURL))\""))")
+        print("\(CLITheme.title("🐽 Oink! Piggy is rooting through \"\(friendlyRootName(rootURL))\""))")
         print(CLITheme.separator("─────────────────────"))
         print("\(CLITheme.purple("•")) Looking inside: \(CLITheme.path(displayRoot(rootURL)))")
         print("\(CLITheme.purple("•")) Full path: \(CLITheme.dim(rootURL.path))")

@@ -12,13 +12,13 @@ func scannedApps(useDiskCache: Bool = true) -> [AppInfo] {
     }
 
     var apps: [AppInfo] = []
-    let indicator = TerminalActivityIndicator(action: "Piggy is sniffing apps", doneLabel: "App sniff complete")
-    indicator.start("looking through your Applications folders")
+    let indicator = TerminalActivityIndicator(action: "Piggy is sniffing your apps and looking for fat", doneLabel: "App fat sniff complete")
+    indicator.start("snout down in your Applications folders")
     apps = AppScanner.scan { current, total, name in
         let appName = TerminalActivityIndicator.clipped(name.replacingOccurrences(of: ".app", with: ""), to: 42)
         indicator.update("\(current)/\(total) · \(appName)")
     }
-    indicator.finish("\(apps.count) apps sniffed")
+    indicator.finish("\(apps.count) apps sniffed, weighed, and oinked at")
     _cachedApps = apps
     AppScanCache.save(apps)
     return apps
@@ -128,31 +128,36 @@ struct List: ParsableCommand {
         let countW = 5
         let nameW = min(apps.map { $0.displayName.count }.max() ?? 20, 30)
         let sizeW = 10
-        let dateW = 11
+        let bundledW = 11
         let archW = 7
-        let sourceW = 11
-        let originW = 10
+        let scopeW = 11
+        let installedW = 12
+        let flaggedW = 14
         let verW = 12
 
-        let header = "  \(formatPadding("#", countW))\(formatPadding("App", nameW))  \(formatPadding("File size", sizeW))  \(formatPadding("Bundle date", dateW))  \(formatPadding("Chip", archW))  \(formatPadding("Scope", sourceW))  \(formatPadding("From", originW))  \(formatPadding("Version", verW))  Helpers  Description"
+        let header = "  \(formatPadding("#", countW))\(formatPadding("App", nameW))  \(formatPadding("File size", sizeW))  \(formatPadding("Bundled", bundledW))  \(formatPadding("Chip", archW))  \(formatPadding("Scope", scopeW))  \(formatPadding("Installed by", installedW))  \(formatPadding("Flagged", flaggedW))  \(formatPadding("Version", verW))"
         let sep = "  " + String(repeating: "─", count: header.count - 2)
         print(CLITheme.label(header))
         print(CLITheme.separator(sep))
 
         for (i, app) in apps.enumerated() {
             let num = CLITheme.rank("\(i + 1)".padding(toLength: countW, withPad: " ", startingAt: 0), index: i)
-            let name = CLITheme.path(String(app.displayName.prefix(nameW)).padding(toLength: nameW, withPad: " ", startingAt: 0))
+            let name = CLITheme.path(ellipsize(app.displayName, width: nameW).padding(toLength: nameW, withPad: " ", startingAt: 0))
             let size = CLITheme.size(app.formattedSize.padding(toLength: sizeW, withPad: " ", startingAt: 0), bytes: app.size)
-            let date = relativeLabel(app.creationDate, width: dateW)
+            let bundled = relativeLabel(app.creationDate, width: bundledW)
             let arch = styledArch(for: app, width: archW)
-            let source = styledSource(app.sourceLabel.padding(toLength: sourceW, withPad: " ", startingAt: 0), app: app)
-            let origin = styledOrigin(app.originLabel.padding(toLength: originW, withPad: " ", startingAt: 0), app: app)
-            let version = (app.shortVersion ?? "-").prefix(12).padding(toLength: verW, withPad: " ", startingAt: 0)
-            let agentsRaw = "\(app.agentCount)".padding(toLength: 6, withPad: " ", startingAt: 0)
-            let agents = app.agentCount > 0 ? CLITheme.warning(agentsRaw) : agentsRaw
-            let purpose = ellipsize(app.purpose ?? "-", width: 48)
+            let scope = styledSource(app.sourceLabel.padding(toLength: scopeW, withPad: " ", startingAt: 0), app: app)
+            let installed = styledOrigin(app.originLabel.padding(toLength: installedW, withPad: " ", startingAt: 0), app: app)
+            let flagged = styledFlagged(for: app, width: flaggedW)
+            let version = String(String(app.shortVersion ?? "-").prefix(verW)).padding(toLength: verW, withPad: " ", startingAt: 0)
+            let location = ellipsize(displayPath(app.path), width: 82)
+            let purpose = ellipsize(app.purpose ?? "-", width: 82)
 
-            print("  \(num)\(name)  \(size)  \(date)  \(arch)  \(source)  \(origin)  \(version)  \(agents)\(purpose)")
+            print("  \(num)\(name)  \(size)  \(bundled)  \(arch)  \(scope)  \(installed)  \(flagged)  \(version)")
+            print("       \(CLITheme.label("Location:")) \(CLITheme.path(location))")
+            if purpose != "-" {
+                print("       \(CLITheme.label("Description:")) \(purpose)")
+            }
         }
     }
 
@@ -162,9 +167,9 @@ struct List: ParsableCommand {
         print(CLITheme.separator("──────────────────────────"))
         print("\(CLITheme.purple("•")) Just looking: nothing is moved, edited, or trashed.")
         print("\(CLITheme.purple("•")) Bigger apps float to the top unless you choose another sort.")
-        print("\(CLITheme.purple("•")) Bundle date is the app bundle file date; updates can make old apps look new.")
+        print("\(CLITheme.purple("•")) Bundled is the app bundle file date; updates can make old apps look new.")
         print("\(CLITheme.purple("•")) Scope tells where it lives: System = macOS, System-wide = /Applications, User = ~/Applications.")
-        print("\(CLITheme.purple("•")) Helpers means little background pieces an app may run.")
+        print("\(CLITheme.purple("•")) Flagged explains Piggy's tiny warning marks: Rosetta, Incompatible, or Downloaded.")
         print("")
         print("\(CLITheme.label("Showing")) \(CLITheme.gold("\(apps.count)")) apps")
     }
@@ -193,6 +198,21 @@ struct List: ParsableCommand {
         if app.isFromAppStore { return CLITheme.green(origin) }
         if app.isAppleSigned { return CLITheme.purple(origin) }
         return CLITheme.blue(origin)
+    }
+
+    private func styledFlagged(for app: AppInfo, width: Int) -> String {
+        let raw = flagReason(for: app).padding(toLength: width, withPad: " ", startingAt: 0)
+        if app.architecture == .i386 { return CLITheme.danger(raw) }
+        if app.architecture == .x86_64 || app.isQuarantined { return CLITheme.warning(raw) }
+        return CLITheme.label(raw)
+    }
+
+    private func flagReason(for app: AppInfo) -> String {
+        var reasons: [String] = []
+        if app.architecture == .i386 { reasons.append("Incompatible") }
+        else if app.architecture == .x86_64 { reasons.append("Rosetta") }
+        if app.isQuarantined { reasons.append("Downloaded") }
+        return reasons.isEmpty ? "-" : reasons.joined(separator: ", ")
     }
 
     private func flagArch(for app: AppInfo) -> String {
@@ -271,11 +291,11 @@ struct Info: ParsableCommand {
         if let minOS = info.minOSVersion { print("  \(CLITheme.label("Needs macOS:"))      \(minOS) or newer") }
         print("  \(CLITheme.label("File size:"))       \(CLITheme.size(info.formattedSize, bytes: info.size))")
         print("  \(CLITheme.label("Chip type:"))        \(styledArchLabel(for: info))")
-        print("  \(CLITheme.label("Came from:"))        \(styledOriginLabel(for: info))")
+        print("  \(CLITheme.label("Installed by:"))     \(styledOriginLabel(for: info))")
         print("  \(CLITheme.label("Apple trust check:")) \(info.isAppleSigned ? CLITheme.green("passed") : CLITheme.warning("not Apple-signed"))")
         if info.isFromAppStore { print("  \(CLITheme.label("App Store:"))        \(CLITheme.green("yes"))") }
         if info.isQuarantined { print("  \(CLITheme.warning("Downloaded flag:"))   still attached, so be careful") }
-        if let cd = info.creationDate { print("  \(CLITheme.label("Bundle date:"))     \(relativeLabel(cd))") }
+        if let cd = info.creationDate { print("  \(CLITheme.label("Bundled:"))         \(relativeLabel(cd))") }
         if let md = info.modificationDate { print("  \(CLITheme.label("Updated:"))          \(relativeLabel(md))") }
         if let lud = info.lastUsedDate { print("  \(CLITheme.label("Last opened:"))      \(relativeLabel(lud))") }
         if info.agentCount > 0 { print("  \(CLITheme.warning("Background helpers:")) \(CLITheme.warning("\(info.agentCount)"))") }
@@ -441,7 +461,11 @@ struct Search: ParsableCommand {
 
         for (index, app) in results.enumerated() {
             print("  \(CLITheme.rank("\(index + 1).", index: index)) \(highlightedDisplayName(app.displayName, query: query))")
-            print("     \(CLITheme.label("File size:"))     \(CLITheme.size(app.formattedSize, bytes: app.size))        \(CLITheme.label("Installed via:")) \(styledOriginLabel(for: app))")
+            print("     \(CLITheme.label("File size:"))     \(CLITheme.size(app.formattedSize, bytes: app.size))        \(CLITheme.label("Installed by:")) \(styledOriginLabel(for: app))")
+            let flagged = flagReason(for: app)
+            if flagged != "-" {
+                print("     \(CLITheme.warning("Flagged:"))      \(CLITheme.warning(flagged))")
+            }
             if let modified = app.modificationDate {
                 print("     \(CLITheme.label("Updated:"))       \(relativeLabel(modified))")
             }
@@ -457,7 +481,7 @@ struct Search: ParsableCommand {
                 print("     \(CLITheme.label("Bundle ID:"))     \(bundleID)")
             }
             if let created = app.creationDate {
-                print("     \(CLITheme.label("Bundle date:"))   \(relativeLabel(created)) (app updates can make an old app look newly added)")
+                print("     \(CLITheme.label("Bundled:"))       \(relativeLabel(created)) (app updates can make an old app look newly added)")
             }
             print("     \(CLITheme.label("Helpers:"))       \(app.agentCount > 0 ? CLITheme.warning("\(app.agentCount)") : "0")")
             if app.isQuarantined {
@@ -485,6 +509,14 @@ struct Search: ParsableCommand {
             pieces.append(CLITheme.path(String(name[cursor..<name.endIndex])))
         }
         return pieces.joined()
+    }
+
+    private func flagReason(for app: AppInfo) -> String {
+        var reasons: [String] = []
+        if app.architecture == .i386 { reasons.append("Incompatible") }
+        else if app.architecture == .x86_64 { reasons.append("Rosetta") }
+        if app.isQuarantined { reasons.append("Downloaded") }
+        return reasons.isEmpty ? "-" : reasons.joined(separator: ", ")
     }
 
     private func styledArchLabel(for app: AppInfo) -> String {
@@ -524,8 +556,8 @@ struct Orphans: ParsableCommand {
     func run() throws {
         let apps = scannedApps()
         let installedIDs = Set(apps.compactMap { $0.bundleIdentifier })
-        let indicator = TerminalActivityIndicator(action: "Piggy is sniffing app crumbs", doneLabel: "Crumb sniff complete")
-        indicator.start("looking in your Library support folders")
+        let indicator = TerminalActivityIndicator(action: "Piggy is rooting through leftover app crumbs", doneLabel: "Crumb hunt complete")
+        indicator.start("snout in your Library support folders")
         let orphans = OrphanScanner.scan(installedBundleIDs: installedIDs) { progress in
             let path = TerminalActivityIndicator.clipped(displayPath(progress.currentURL), to: 44)
             indicator.update("\(progress.statusSummary) · \(path)")
@@ -671,7 +703,7 @@ struct Export: ParsableCommand {
 }
 
 private func findRelatedFilesWithActivity(for app: AppInfo) -> [AppRemover.RelatedFile] {
-    let indicator = TerminalActivityIndicator(action: "Piggy is sniffing related app crumbs", doneLabel: "Related crumb sniff complete")
+    let indicator = TerminalActivityIndicator(action: "Piggy is rooting through \(app.displayName)'s app crumbs", doneLabel: "Related crumb hunt complete")
     indicator.start(app.displayName)
     let related = AppRemover.findRelatedFiles(for: app) { progress in
         indicator.update(progress.statusSummary)
