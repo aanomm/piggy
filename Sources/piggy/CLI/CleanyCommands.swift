@@ -27,36 +27,20 @@ func scannedApps(useDiskCache: Bool = true) -> [AppInfo] {
 // MARK: - snort
 
 struct Snort: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Show your apps, with the biggest ones first by default")
+    static let configuration = CommandConfiguration(abstract: "Detailed look: piggy snort [what] [where]")
 
-    enum Order: String, ExpressibleByArgument {
-        case big
-        case small
-        case new
-        case old
-    }
+    @Argument(help: "What and where, e.g. apps, imgs ~/Pictures, docs ~/Documents")
+    var words: [String] = []
 
-    @Argument(help: "Order: big for largest first, small for smallest first, new for newest, old for oldest")
-    var order: Order = .big
+    @Option(name: .shortAndLong, help: "Number of items to show")
+    var limit: Int = 20
 
-    @Flag(name: .long, help: "Force a fresh app scan and update the cache")
+    @Flag(name: .long, help: "Force a fresh app scan when snorting apps")
     var fresh: Bool = false
 
     func run() throws {
-        var args: [String]
-        switch order {
-        case .big:
-            args = ["--sort", "size"]
-        case .small:
-            args = ["--sort", "size", "--asc"]
-        case .new:
-            args = ["--sort", "created"]
-        case .old:
-            args = ["--sort", "created", "--asc"]
-        }
-        if fresh { args.append("--fresh") }
-        let list = List.parseOrExit(args)
-        try list.run()
+        let plan = try PiggyCommandPlan.parse(action: .snort, words: words)
+        try PiggyActionRunner.run(plan, limit: limit, fresh: fresh)
     }
 }
 
@@ -436,15 +420,29 @@ struct Delete: ParsableCommand {
 // MARK: - search
 
 struct Search: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Ask Piggy to find apps by name or description")
+    static let configuration = CommandConfiguration(abstract: "Find stuff: piggy search [what] <words> [where]")
 
-    @Argument(help: "Search query")
-    var query: String
+    @Argument(help: "What to search and words to find, e.g. apps xcode, docs tax ~/Documents")
+    var words: [String] = []
 
-    @Flag(name: .long, help: "Print machine-readable JSON instead of result cards")
+    @Option(name: .shortAndLong, help: "Number of items to show")
+    var limit: Int = 20
+
+    @Flag(name: .long, help: "Print machine-readable JSON instead of result cards for app search")
     var json: Bool = false
 
     func run() throws {
+        do {
+            let plan = try PiggyCommandPlan.parse(action: .search, words: words)
+            try PiggyActionRunner.run(plan, limit: limit)
+        } catch PiggyCommandPlanError.missingSearchQuery {
+            print("🐽 Search for what? Try `piggy search docs tax ~/Documents`.")
+            throw ExitCode.failure
+        }
+    }
+
+    func runLegacyAppSearch() throws {
+        let query = words.joined(separator: " ")
         let apps = scannedApps()
         let matches = AppSearch.search(apps, query: query)
         let results = matches.apps

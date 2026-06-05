@@ -1,16 +1,26 @@
 # Piggy
 
-Piggy is a native macOS command-line tool for finding application bloat, stale binaries, background agents, and safe cleanup candidates without pretending deletion is simple.
+Piggy is a native macOS command-line tool for seeing what is taking up space: apps, folders, images, videos, and docs.
 
-It is intentionally non-destructive by default. Scan commands may update Piggy’s local cache, but they do not delete apps or support files. Destructive actions are explicit, confirmation-gated, and backed by safety checks.
+Its product soul is simple: **Show me the shit on my Mac — and make it easy to see.** Piggy is intentionally non-destructive by default. Scan commands may update Piggy’s local cache, but they do not delete apps or support files. Destructive actions are explicit, confirmation-gated, and backed by safety checks.
 
 ```bash
-piggy mac audit
-piggy folders ~/Downloads --limit 25
-piggy mac list --sort size
-piggy mac list --rosetta
-piggy mac list --json
+piggy sniff
+piggy sniff apps
+piggy sniff imgs ~/Pictures
+piggy snort docs ~/Documents
+piggy search docs tax ~/Documents
+piggy stye ~/Downloads
 ```
+
+Piggy’s noob-friendly command map is:
+
+```text
+piggy [action] [what] [where]
+```
+
+Actions: `sniff`, `snort`, `search`, `stye`.
+What: `apps`, `imgs`, `vids`, `docs`.
 
 ## Why Piggy exists
 
@@ -26,11 +36,13 @@ Piggy’s job is calmer:
 
 ## Current features
 
-- Non-destructive Mac audit summary: `piggy mac audit`
-- Folder size audit with recursive file counts: `piggy folders ~/Downloads`
+- Noob-friendly command architecture: `piggy [action] [what] [where]`
+- Core actions: `sniff`, `snort`, `search`, and `stye`
+- Four-letter what words: `apps`, `imgs`, `vids`, `docs`
+- Folder size audit with recursive file counts: `piggy sniff` / `piggy stye ~/Downloads`
 - App scanner for `/Applications`, `/System/Applications`, and `~/Applications`
-- Size, architecture, origin, quarantine, and background-agent detection
-- Largest-app ranking and advanced list filters
+- Image/video/document file scanning in user-chosen folders
+- Size, architecture, origin, quarantine, and background-agent detection for apps
 - Compact human tables plus JSON output for agents and scripts
 - Safety-classified removal planning
 - Confirmation-based deletion flow for user-approved cleanup
@@ -114,7 +126,9 @@ Planned release path: first tagged GitHub release, then a Homebrew formula/tap o
 For local development without installing globally:
 
 ```bash
-swift run piggy mac audit
+swift run piggy sniff
+swift run piggy sniff imgs ~/Pictures
+swift run piggy search docs tax ~/Documents
 ```
 
 ## Development
@@ -166,11 +180,11 @@ Near-term quality gates:
 
 Media roadmap:
 
-- `piggy folders` — biggest directories in selected paths with recursive file/folder counts;
-- `piggy media` — read-only largest images/videos/audio in selected folders;
-- `piggy images` — largest image files with dimensions and type;
-- `piggy video` — largest videos with duration/resolution when metadata is available;
-- explicit `--path` / `--include` options before scanning personal libraries.
+- `piggy [action] [what] [where]` is the stable novice-facing architecture;
+- `piggy stye` — visual pigsty map of where folder space is going;
+- `piggy sniff imgs|vids|docs` — read-only largest media/docs in selected folders;
+- richer image/video metadata when privacy-safe and dependency-light;
+- cross-platform core exploration for files/folders/media, with per-platform app inventory modules.
 
 ## Codex for OSS fit
 

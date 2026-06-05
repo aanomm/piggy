@@ -5,9 +5,9 @@ import ArgumentParser
 struct Piggy: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "piggy",
-        abstract: "A friendly Mac tidy helper that looks, weighs, and explains before anything moves.",
-        discussion: "Piggy helps you see which apps and folders take up space. Most commands only look. Trash commands ask first.",
-        subcommands: [Mac.self, Folders.self, Folder.self, Audit.self, Snort.self, List.self, Info.self, Delete.self, Search.self, Export.self],
+        abstract: "Show me the shit on my Mac — and make it easy to see.",
+        discussion: "Architecture: piggy [action] [what] [where]. Actions: sniff, snort, search, stye. What: apps, imgs, vids, docs.",
+        subcommands: [Sniff.self, Snort.self, Search.self, Stye.self, Mac.self, Folders.self, Folder.self, Audit.self, List.self, Info.self, Delete.self, Export.self],
         defaultSubcommand: nil
     )
 

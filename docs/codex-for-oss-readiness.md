@@ -17,7 +17,7 @@ Strengths:
 - Public Swift CLI prepared for open-source submission.
 - MIT-licensed codebase with CI, README, contribution guide, security policy, and issue templates.
 - Native Swift package with a small, understandable architecture.
-- Real test suite around scanner, size, safety, cache, audit, and removal-planning logic.
+- Real test suite around scanner, command grammar, size, safety, cache, audit, and removal-planning logic.
 - Clear safety angle: local filesystem cleanup, protected locations, background agents, quarantine, symlink handling, and destructive-action risk.
 - Compact human output plus JSON records for agent-assisted review without table scraping.
 - Obvious Codex use cases: PR review, test generation, release checklists, issue triage, security review, and docs automation.
@@ -31,11 +31,11 @@ Current weaknesses to be transparent about:
 
 ## Recommended application positioning
 
-Piggy should be framed as a safety-first macOS maintenance tool, not a generic cleaner.
+Piggy should be framed as a safety-first, novice-friendly local disk visibility tool — not a generic cleaner.
 
 Suggested angle:
 
-> Piggy helps macOS users and maintainers audit app bloat, stale architectures, quarantine status, background helpers, and cleanup candidates with conservative safety checks. We use Codex to maintain filesystem-safety tests, review cleanup changes, harden path handling, and automate release/triage workflows for an open-source Swift CLI.
+> Piggy helps everyday users see what is taking up space on their Mac with a simple `piggy [action] [what] [where]` command language, while giving maintainers auditable, conservative safety checks around app metadata, folder scans, privacy-sensitive media/docs scans, and destructive cleanup flows. We use Codex to maintain filesystem-safety tests, review cleanup changes, harden path handling, and automate release/triage workflows for an open-source Swift CLI.
 
 ## Workflows worth mentioning
 
@@ -58,6 +58,6 @@ Suggested angle:
 
 ## Short submission blurb
 
-Piggy is a safety-first native macOS CLI for auditing application bloat, stale binaries, background helpers, trust clues, and folder-level disk usage without normalizing reckless deletion. It is intentionally non-destructive by default, has tests around filesystem safety and removal planning, and is a strong fit for Codex-assisted maintenance because every feature touches areas where review quality matters: path handling, symlink behavior, protected locations, privacy-sensitive scans, JSON output contracts, and destructive cleanup UX.
+Piggy is a safety-first, novice-friendly native macOS CLI for seeing what is taking up space — apps, folders, images, videos, and docs — through a simple `piggy [action] [what] [where]` command language. It is intentionally non-destructive by default, has tests around command grammar, filesystem safety, scans, and removal planning, and is a strong fit for Codex-assisted maintenance because every feature touches areas where review quality matters: path handling, symlink behavior, protected locations, privacy-sensitive scans, JSON output contracts, and destructive cleanup UX.
 
 We plan to use Codex for pull request review, security hardening, regression-test generation, release checklists, and issue triage so Piggy can grow into a trustworthy open-source macOS maintenance tool rather than another opaque “cleaner.”
