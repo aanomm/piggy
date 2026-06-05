@@ -28,7 +28,7 @@ Current commands:
 - `piggy info`
 - `piggy delete`
 - `piggy search`
-- `piggy orphans`
+- standalone orphan scan (historical; later removed from the public surface pending a sharper safety story)
 - `piggy export`
 
 Major issues to fix before Piggy Web:
@@ -70,7 +70,6 @@ Keep existing aliases working, but introduce the future structure:
 piggy mac scan
 piggy mac apps
 piggy mac app-info "Arc"
-piggy mac orphans
 piggy mac export --format json
 
 piggy web scan https://example.com
@@ -85,7 +84,6 @@ Compatibility aliases:
 piggy snort      -> piggy mac apps --sort size
 piggy list       -> piggy mac apps
 piggy info       -> piggy mac app-info
-piggy orphans    -> piggy mac orphans
 piggy export     -> piggy mac export
 ```
 

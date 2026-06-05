@@ -20,12 +20,11 @@ private func handleSplashInterrupt(_ signalNumber: Int32) {
 private let MENU_ITEMS: [(String, String, String)] = [
     ("1", "Peek",    "look at your apps without touching anything"),
     ("2", "Folders", "find the biggest folders in a place you choose"),
-    ("3", "Apps",    "show your app pile, biggest first"),
+    ("3", "Apps",    "see your fattest apps"),
     ("4", "Find",    "search for an app by name"),
     ("5", "Explain", "plain-English notes for one app"),
-    ("6", "Crumbs",  "leftover app bits Piggy can review"),
-    ("7", "Pack",    "save the app list as CSV or JSON"),
-    ("8", "Play",    "open the interactive Piggy browser"),
+    ("6", "Pack",    "save the app list as CSV or JSON"),
+    ("7", "Play",    "open the interactive Piggy browser"),
 ]
 
 enum SplashMenu {
@@ -87,9 +86,6 @@ enum SplashMenu {
                     if !executeMenuItem(5, termOrig: &orig) { return }
                     isFirstRender = false
                 case "7":
-                    if !executeMenuItem(6, termOrig: &orig) { return }
-                    isFirstRender = false
-                case "8":
                     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig)
                     print("")
                     fflush(stdout)
@@ -163,11 +159,6 @@ enum SplashMenu {
                             print("  🐽 No problem. Piggy did not do anything.\n")
                         }
                         isFirstRender = false
-                    case "orphans", "o":
-                        let orphansCmd = Orphans.parseOrExit([])
-                        try? orphansCmd.run()
-                        waitForEnter()
-                        isFirstRender = false
                     case "export", "e":
                         let exportCmd = Export.parseOrExit([])
                         try? exportCmd.run()
@@ -187,7 +178,7 @@ enum SplashMenu {
                     default:
                         let pig = ["(\(PINK)°\(RESET)o\(PINK)°\(RESET))", "(\(PINK)•\(RESET)˕\(PINK)•\(RESET))", "(\(PINK)⇀\(RESET)↼\(PINK)⇀\(RESET))"]
                         let pigface = pig[Int.random(in: 0..<pig.count)]
-                        print("  \(pigface)  Piggy does not know '\(fullInput)' yet. Press 1-8 or h for help.\n")
+                        print("  \(pigface)  Piggy does not know '\(fullInput)' yet. Press 1-7 or h for help.\n")
                     }
                 }
             }
@@ -236,16 +227,11 @@ enum SplashMenu {
             }
             return true
         case 5:
-            let orphansCmd = Orphans.parseOrExit([])
-            try? orphansCmd.run()
-            waitForEnter()
-            return true
-        case 6:
             let exportCmd = Export.parseOrExit([])
             try? exportCmd.run()
             waitForEnter()
             return true
-        case 7:
+        case 6:
             print("")
             fflush(stdout)
             AppTUI.run()
@@ -313,7 +299,7 @@ enum SplashMenu {
         }
 
         printBoxLine("", width: boxW, pad: pad)
-        printBoxLine("  \(MAUVE)↑↓\(RESET) move   \(MAUVE)↵\(RESET) choose   \(MAUVE)1-8\(RESET) quick pick   \(MAUVE)q\(RESET) leave   \(MAUVE)h\(RESET) help", width: boxW, pad: pad)
+        printBoxLine("  \(MAUVE)↑↓\(RESET) move   \(MAUVE)↵\(RESET) choose   \(MAUVE)1-7\(RESET) quick pick   \(MAUVE)q\(RESET) leave   \(MAUVE)h\(RESET) help", width: boxW, pad: pad)
         print("\(pad)\(BORDER)╰\(String(repeating: "─", count: boxW))╯\(RESET)")
         print("")
         print("\(pad)\(DIM)type a command, or pick a trail above:\(RESET) ", terminator: "")
@@ -392,7 +378,7 @@ enum SplashMenu {
         print("  piggy mac audit")
         print("  piggy folders ~/Downloads --limit 25")
         print("  piggy mac list --sort size")
-        print("  piggy mac orphans")
+        print("  piggy mac list --json")
         print("")
         print("Use `piggy --help` for the full list.")
     }
@@ -417,7 +403,6 @@ enum SplashMenu {
         print("    piggy info <app>    Piggy explains one app")
         print("    piggy search <q>    Piggy finds apps by name or description")
         print("    piggy delete <app>  Piggy asks, then moves an app to the Mac Trash")
-        print("    piggy orphans       Piggy looks for leftover app crumbs")
         print("    piggy export        Piggy packs the app list as CSV or JSON")
         print("    piggy               Open this menu")
         print("    piggy --help        Full help with all options")

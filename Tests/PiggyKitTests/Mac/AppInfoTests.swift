@@ -37,6 +37,41 @@ final class AppInfoTests: XCTestCase {
         XCTAssertEqual(SortKey.created.label, "Bundled")
     }
 
+    func testAppReportRecordUsesAgentFriendlyFieldsAndFlagReasons() {
+        let app = makeApp(
+            name: "Odd Tool",
+            path: "/Applications/Odd Tool.app",
+            size: 1_048_576,
+            architecture: .x86_64,
+            isQuarantined: true,
+            agentCount: 2
+        )
+
+        let record = AppReportRecord(app: app)
+
+        XCTAssertEqual(record.name, "Odd Tool")
+        XCTAssertEqual(record.path, "/Applications/Odd Tool.app")
+        XCTAssertEqual(record.sizeBytes, 1_048_576)
+        XCTAssertEqual(record.sizeFormatted, "1.0 MB")
+        XCTAssertEqual(record.architecture, "x86_64")
+        XCTAssertEqual(record.architectureLabel, "x86_64 (Intel/Rosetta)")
+        XCTAssertEqual(record.scope, "System-wide")
+        XCTAssertEqual(record.installedBy, "Direct")
+        XCTAssertEqual(record.flagged, ["Rosetta", "Downloaded"])
+        XCTAssertEqual(record.helpers, 2)
+    }
+
+    func testAppReportRecordEncodesSnakeCaseJson() throws {
+        let app = makeApp(name: "Store Tool", isFromAppStore: true)
+
+        let json = try AppReportRecord.encodeJSON([app])
+
+        XCTAssertTrue(json.contains("\"size_bytes\""))
+        XCTAssertTrue(json.contains("\"installed_by\""))
+        XCTAssertTrue(json.contains("\"flagged\""))
+        XCTAssertTrue(json.contains("\"app_store\""))
+    }
+
     private func makeApp(
         name: String = "Example",
         path: String = "/Applications/Example.app",
@@ -44,6 +79,8 @@ final class AppInfoTests: XCTestCase {
         architecture: Architecture = .arm64,
         isAppleSigned: Bool = false,
         isFromAppStore: Bool = false,
+        isQuarantined: Bool = false,
+        agentCount: Int = 0,
         source: AppInfo.SourceDirectory = .rootApp
     ) -> AppInfo {
         AppInfo(
@@ -62,8 +99,8 @@ final class AppInfoTests: XCTestCase {
             architecture: architecture,
             isAppleSigned: isAppleSigned,
             isFromAppStore: isFromAppStore,
-            isQuarantined: false,
-            agentCount: 0,
+            isQuarantined: isQuarantined,
+            agentCount: agentCount,
             sourceDir: source
         )
     }

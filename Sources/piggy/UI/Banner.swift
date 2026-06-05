@@ -21,7 +21,7 @@ enum Banner {
 \#(pink)│  ██║     ██║╚██████╔╝╚██████╔╝   ██║                                    │
 \#(pink)│  ╚═╝     ╚═╝ ╚═════╝  ╚═════╝    ╚═╝                                    │
 \#(dim)│                                                                        │
-\#(mauve)│         .-""""""""-.           \#(dim)╭───────╮\#(mauve)        \#(blush)cache crumbs\#(mauve)       │
+\#(mauve)│         .-""""""""-.           \#(dim)╭───────╮\#(mauve)        \#(blush)fat apps\#(mauve)           │
 \#(mauve)│       .'   \#(blush)o\#(mauve)      \#(blush)o\#(mauve)   '.         \#(dim)│  GB   │\#(mauve)        \#(blush)old helpers\#(mauve)       │
 \#(mauve)│      /        \#(blush)(oo)\#(mauve)       \       \#(dim)╰───┬───╯\#(mauve)        \#(blush)big folders\#(mauve)       │
 \#(mauve)│     |      .-.___.-.      |          \#(dim)│\#(mauve)                           │
@@ -40,7 +40,7 @@ enum Banner {
 \#(pink) ██║     ██║╚██████╔╝╚██████╔╝   ██║      \#(pink)no surprise deletes\#(reset)
 \#(pink) ╚═╝     ╚═╝ ╚═════╝  ╚═════╝    ╚═╝
 \#(mauve)        .-""""-.
-\#(mauve)      .' \#(blush)o\#(mauve)  \#(blush)o\#(mauve) '.     \#(dim)cache crumbs • big folders\#(reset)
+\#(mauve)      .' \#(blush)o\#(mauve)  \#(blush)o\#(mauve) '.     \#(dim)fat apps • big folders\#(reset)
 \#(mauve)     /    \#(blush)(oo)\#(mauve)   \    \#(dim)sniff first, ask before trash\#(reset)
 \#(mauve)     \   \#(blush)'---'\#(mauve)   /
 \#(mauve)      '.___.__.'

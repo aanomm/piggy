@@ -9,19 +9,19 @@ piggy mac audit
 piggy folders ~/Downloads --limit 25
 piggy mac list --sort size
 piggy mac list --rosetta
-piggy mac orphans
+piggy mac list --json
 ```
 
 ## Why Piggy exists
 
-macOS app cleanup is weird: an app bundle can be huge, Intel-only, quarantined, Apple-signed, App Store managed, or surrounded by launch agents and leftover support files. Most cleaners flatten those differences into a scary “delete this” button.
+macOS app cleanup is weird: an app bundle can be huge, Intel-only, quarantined, Apple-signed, App Store managed, or surrounded by background helpers. Most cleaners flatten those differences into a scary “delete this” button.
 
 Piggy’s job is calmer:
 
 - show what is actually taking space;
 - explain why something deserves review;
 - keep Apple/system apps protected;
-- surface background agents and leftovers;
+- surface background agents and trust clues;
 - make cleanup auditable instead of vibes-based.
 
 ## Current features
@@ -31,7 +31,7 @@ Piggy’s job is calmer:
 - App scanner for `/Applications`, `/System/Applications`, and `~/Applications`
 - Size, architecture, origin, quarantine, and background-agent detection
 - Largest-app ranking and advanced list filters
-- Orphan/leftover discovery for deleted apps
+- Compact human tables plus JSON output for agents and scripts
 - Safety-classified removal planning
 - Confirmation-based deletion flow for user-approved cleanup
 - Terminal splash menu and interactive browser
@@ -84,7 +84,9 @@ piggy folders . --depth 2 --min-size 500mb
 
 By default Piggy skips hidden files/folders and ranks immediate child folders. Use `--include-hidden` and `--depth` only when you want a noisier scan.
 
-## Install from source
+## Install
+
+Piggy does not have a Homebrew tap or signed binary release yet. For now, install from source with Swift Package Manager:
 
 Requirements:
 
@@ -92,11 +94,22 @@ Requirements:
 - Swift 6 toolchain / Xcode command line tools
 
 ```bash
-git clone <repo-url> piggy
+git clone https://github.com/aanomm/piggy.git
 cd piggy
 swift build -c release
-install -m 755 .build/release/piggy /usr/local/bin/piggy
+sudo install -m 755 .build/release/piggy /usr/local/bin/piggy
+piggy --help
 ```
+
+If you prefer not to use `sudo`, install to a user-owned bin directory that is already on your `PATH`:
+
+```bash
+mkdir -p ~/.local/bin
+install -m 755 .build/release/piggy ~/.local/bin/piggy
+~/.local/bin/piggy --help
+```
+
+Planned release path: first tagged GitHub release, then a Homebrew formula/tap once the CLI surface is stable.
 
 For local development without installing globally:
 
@@ -118,6 +131,7 @@ Useful project docs:
 - [`docs/architecture.md`](docs/architecture.md) — package layout, safety boundaries, and roadmap.
 - [`docs/performance.md`](docs/performance.md) — local benchmark fixture and optimization notes.
 - [`docs/terminal-design.md`](docs/terminal-design.md) — CLI design/accessibility principles.
+- [`docs/agent-workflows.md`](docs/agent-workflows.md) — safe Codex/agent usage patterns and JSON examples.
 - [`docs/codex-for-oss-readiness.md`](docs/codex-for-oss-readiness.md) — Codex for Open Source submission notes.
 
 ## Accessibility and terminal output
@@ -133,7 +147,7 @@ Piggy treats terminal output as UI:
 
 Piggy treats cleanup as a safety problem, not just a filesystem operation.
 
-- `piggy mac audit`, `list`, `info`, `search`, `orphans`, and `export` are non-destructive; scans may refresh Piggy’s local cache.
+- `piggy mac audit`, `list`, `info`, `search`, `folders`, and `export` are non-destructive; scans may refresh Piggy’s local cache.
 - System applications are blocked from deletion.
 - Related files are classified before removal.
 - Sensitive or ambiguous files are skipped and reported rather than silently removed.
@@ -160,7 +174,7 @@ Media roadmap:
 
 ## Codex for OSS fit
 
-Piggy is being prepared as an open-source maintainer workflow project: small native codebase, clear tests, safety-critical filesystem behavior, and good candidates for Codex-assisted triage, review, release checks, and security hardening.
+Piggy is being prepared as an open-source maintainer workflow project: small native codebase, clear tests, safety-critical filesystem behavior, and good candidates for Codex-assisted triage, JSON-based review, release checks, and security hardening.
 
 See [`docs/codex-for-oss-readiness.md`](docs/codex-for-oss-readiness.md).
 

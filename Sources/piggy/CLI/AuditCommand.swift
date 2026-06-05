@@ -65,7 +65,7 @@ struct Audit: ParsableCommand {
         print("  \(CLITheme.command("piggy mac list --sort size"))")
         print("  \(CLITheme.command("piggy folders ~/Downloads --limit 25"))")
         print("  \(CLITheme.command("piggy mac list --rosetta"))")
-        print("  \(CLITheme.command("piggy mac orphans"))")
+        print("  \(CLITheme.command("piggy list --json"))")
         print("")
     }
 
