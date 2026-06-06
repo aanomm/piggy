@@ -159,10 +159,11 @@ private func runMudMap(words: [String], limit: Int, depth: Int, includeHidden: B
     let plan = try PiggyCommandPlan.parse(action: .mudmap, words: input.words)
     let root = URL(fileURLWithPath: (plan.where as NSString).expandingTildeInPath).standardizedFileURL
     let indicator = TerminalActivityIndicator(
-        action: "🐽 Oink! Piggy is mapping \(input.depthLabel) of \"\(mudMapDisplayRoot(root))\"",
-        doneLabel: piggyActivityDoneLabel(plan.action.rawValue)
+        action: mudMapActivityAction(depthLabel: input.depthLabel, root: root),
+        doneLabel: piggyActivityDoneLabel(plan.action.rawValue),
+        actionIsStyled: mudMapActivityUsesStyledAction()
     )
-    indicator.start(root.path)
+    indicator.start()
     let map = FileTreeMapper.map(
         root: root,
         maxDepth: input.depth,
@@ -188,7 +189,7 @@ private func printMudMap(_ map: FileTreeMap, root: URL, depth: Int, depthLabel: 
         print("\(CLITheme.purple("•")) \(note)")
     }
     if !notes.isEmpty { print("") }
-    print(CLITheme.mudMapName(map.root.name.isEmpty ? root.path : map.root.name, depth: 0, isDirectory: true) + CLITheme.dim("/ ") + CLITheme.size(ByteFormat.string(map.root.bytes), bytes: map.root.bytes) + mudMapInlineSummarySuffix(map.root) + mudMapInlineLimitSuffix(map.root, summarizedInline: map.root.childSummary != nil))
+    print(mudMapNodeName(map.root.name.isEmpty ? root.path : map.root.name, depth: 0, isDirectory: true) + CLITheme.dim("/ ") + CLITheme.size(ByteFormat.string(map.root.bytes), bytes: map.root.bytes) + mudMapInlineSummarySuffix(map.root) + mudMapInlineLimitSuffix(map.root, summarizedInline: map.root.childSummary != nil))
     if depth > 0 {
         printMudMapChildren(map.root.children, prefix: "", depth: 1, maxDepth: depth)
     }
@@ -202,7 +203,7 @@ private func printMudMapChildren(_ nodes: [FileTreeNode], prefix: String, depth:
         let branch = isLast ? "└── " : "├── "
         let nextPrefix = prefix + (isLast ? "    " : "│   ")
         let marker = node.isDirectory ? "/" : ""
-        print("\(CLITheme.treeGuide(prefix + branch))\(CLITheme.mudMapName(node.name, depth: depth, isDirectory: node.isDirectory))\(CLITheme.dim(marker)) \(CLITheme.size(ByteFormat.string(node.bytes), bytes: node.bytes))\(mudMapInlineSummarySuffix(node))\(mudMapInlineLimitSuffix(node, summarizedInline: node.childSummary != nil))")
+        print("\(CLITheme.treeGuide(prefix + branch))\(mudMapNodeName(node.name, depth: depth, isDirectory: node.isDirectory))\(CLITheme.dim(marker)) \(CLITheme.size(ByteFormat.string(node.bytes), bytes: node.bytes))\(mudMapInlineSummarySuffix(node))\(mudMapInlineLimitSuffix(node, summarizedInline: node.childSummary != nil))")
         if !node.children.isEmpty {
             printMudMapChildren(node.children, prefix: nextPrefix, depth: depth + 1, maxDepth: maxDepth)
         }
@@ -211,6 +212,11 @@ private func printMudMapChildren(_ nodes: [FileTreeNode], prefix: String, depth:
 
 private func countLabel(_ count: Int, _ singular: String) -> String {
     count == 1 ? "1 \(singular)" : "\(count) \(singular)s"
+}
+
+private func mudMapNodeName(_ name: String, depth: Int, isDirectory: Bool) -> String {
+    let folderIcon = isDirectory ? CLITheme.mudMapFolderIcon("📁 ") : ""
+    return folderIcon + CLITheme.mudMapName(name, depth: depth, isDirectory: isDirectory)
 }
 
 private func mudMapInlineSummarySuffix(_ node: FileTreeNode) -> String {
@@ -237,6 +243,29 @@ private func mudMapDisplayRoot(_ root: URL) -> String {
     if path == home { return "~" }
     if path.hasPrefix(home + "/") { return "~" + String(path.dropFirst(home.count)) }
     return root.lastPathComponent.isEmpty ? path : root.lastPathComponent
+}
+
+private func mudMapActivityAction(depthLabel: String, root: URL) -> String {
+    let prefix = "🐽 Oink! Piggy is mapping \(depthLabel) of "
+    let path = root.path
+    guard mudMapActivityUsesStyledAction() else {
+        return prefix + path
+    }
+
+    return "\u{001B}[38;5;175m\(prefix)\u{001B}[0m" + mudMapActivityPath(path)
+}
+
+private func mudMapActivityUsesStyledAction() -> Bool {
+    TerminalStyle.colorsEnabled(stdoutIsTTY: isatty(STDERR_FILENO) == 1)
+}
+
+private func mudMapActivityPath(_ path: String) -> String {
+    let leaf = URL(fileURLWithPath: path).lastPathComponent
+    guard !leaf.isEmpty, let range = path.range(of: leaf, options: [.backwards]) else {
+        return "\u{001B}[38;5;179m\(path)\u{001B}[0m"
+    }
+    let head = String(path[..<range.lowerBound])
+    return "\u{001B}[38;5;179m\(head)\u{001B}[1m\(leaf)\u{001B}[0m"
 }
 
 enum PiggyActionRunner {

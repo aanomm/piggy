@@ -199,6 +199,7 @@ enum Spinner {
 
 final class TerminalActivityIndicator: @unchecked Sendable {
     private let action: String
+    private let actionIsStyled: Bool
     private let doneLabel: String
     private let enabled: Bool
     private let colorEnabled: Bool
@@ -212,8 +213,9 @@ final class TerminalActivityIndicator: @unchecked Sendable {
     private var running = false
     private var workerStarted = false
 
-    init(action: String, doneLabel: String = "Done") {
+    init(action: String, doneLabel: String = "Done", actionIsStyled: Bool = false) {
         self.action = action
+        self.actionIsStyled = actionIsStyled
         self.doneLabel = doneLabel
 
         let environment = ProcessInfo.processInfo.environment
@@ -285,7 +287,8 @@ final class TerminalActivityIndicator: @unchecked Sendable {
         stateLock.unlock()
 
         let suffix = status.map { " - \(paint(Self.clipped($0, to: 72), "38;5;179"))" } ?? ""
-        write("\r\u{001B}[2K\(paint(frame, "38;5;141")) \(paint(action, "38;5;175;1"))\(suffix)")
+        let displayedAction = actionIsStyled ? action : paint(action, "38;5;175;1")
+        write("\r\u{001B}[2K\(paint(frame, "38;5;141")) \(displayedAction)\(suffix)")
     }
 
     static func clipped(_ text: String, to maxLength: Int) -> String {
