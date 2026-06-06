@@ -2,7 +2,7 @@
 
 Piggy is a native macOS command-line tool for seeing what is taking up space: apps, folders, images, videos, and docs.
 
-Its product soul is simple: **Show me the shit on my Mac — and make it easy to see.** Piggy is intentionally non-destructive by default. Scan commands may update Piggy’s local cache, but they do not delete apps or support files. Destructive actions are explicit, confirmation-gated, and backed by safety checks.
+Its product soul is simple: **Find fat folders and files on your Mac.** Piggy is intentionally non-destructive by default. Scan commands may update Piggy’s local cache, but they do not delete apps or support files. Destructive actions are explicit, confirmation-gated, and backed by safety checks.
 
 ```bash
 piggy sniff
@@ -10,7 +10,7 @@ piggy sniff apps
 piggy sniff imgs ~/Pictures
 piggy snort docs ~/Documents
 piggy search docs tax ~/Documents
-piggy stye ~/Downloads
+piggy mudmap ~/Downloads
 ```
 
 Piggy’s noob-friendly command map is:
@@ -19,7 +19,7 @@ Piggy’s noob-friendly command map is:
 piggy [action] [what] [where]
 ```
 
-Actions: `sniff`, `snort`, `search`, `stye`.
+Actions: `sniff`, `snort`, `search`, `mudmap`.
 What: `apps`, `imgs`, `vids`, `docs`.
 
 ## Why Piggy exists
@@ -37,9 +37,9 @@ Piggy’s job is calmer:
 ## Current features
 
 - Noob-friendly command architecture: `piggy [action] [what] [where]`
-- Core actions: `sniff`, `snort`, `search`, and `stye`
+- Core actions: `sniff`, `snort`, `search`, and `mudmap` (Mud map)
 - Four-letter what words: `apps`, `imgs`, `vids`, `docs`
-- Folder size audit with recursive file counts: `piggy sniff` / `piggy stye ~/Downloads`
+- Folder size audit with recursive file counts: `piggy sniff` / `piggy mudmap ~/Downloads`
 - App scanner for `/Applications`, `/System/Applications`, and `~/Applications`
 - Image/video/document file scanning in user-chosen folders
 - Size, architecture, origin, quarantine, and background-agent detection for apps
@@ -181,7 +181,7 @@ Near-term quality gates:
 Media roadmap:
 
 - `piggy [action] [what] [where]` is the stable novice-facing architecture;
-- `piggy stye` — visual pigsty map of where folder space is going;
+- `piggy mudmap` — mud map of where folder space is going;
 - `piggy sniff imgs|vids|docs` — read-only largest media/docs in selected folders;
 - richer image/video metadata when privacy-safe and dependency-light;
 - cross-platform core exploration for files/folders/media, with per-platform app inventory modules.

@@ -32,10 +32,10 @@ final class PiggyCommandPlanTests: XCTestCase {
         XCTAssertEqual(plan.where, "~/Documents")
     }
 
-    func testStyeDefaultsToEverythingHere() throws {
-        let plan = try PiggyCommandPlan.parse(action: .stye, words: [])
+    func testMudMapDefaultsToEverythingHere() throws {
+        let plan = try PiggyCommandPlan.parse(action: .mudmap, words: [])
 
-        XCTAssertEqual(plan.action, .stye)
+        XCTAssertEqual(plan.action, .mudmap)
         XCTAssertEqual(plan.what, .everything)
         XCTAssertEqual(plan.where, ".")
     }

@@ -18,10 +18,10 @@ private func handleSplashInterrupt(_ signalNumber: Int32) {
 }
 
 private let MENU_ITEMS: [(String, String, String)] = [
-    ("1", "sniff",  "quick overview; biggest first"),
-    ("2", "snort",  "deeper detail"),
-    ("3", "search", "find apps / imgs / vids / docs"),
-    ("4", "stye",   "map a folder"),
+    ("1", "Sniff",   "See a simple view of fat folders and files"),
+    ("2", "Snort",   "See a detailed view of fat folders and files"),
+    ("3", "Search",  "See specific files, folders, apps / imgs / vids / docs"),
+    ("4", "Mud map", "See a mud map of your folders"),
 ]
 
 enum SplashMenu {
@@ -196,11 +196,11 @@ enum SplashMenu {
             }
             return true
         case 3:
-            print("  Where should Piggy draw the stye? \(PINK)(blank = this folder)\(RESET): ", terminator: "")
+            print("  Where should Piggy draw the mud map? \(PINK)(blank = this folder)\(RESET): ", terminator: "")
             fflush(stdout)
             let raw = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let styeCmd = Stye.parseOrExit(raw.isEmpty ? [] : splitCommandLine(raw))
-            try? styeCmd.run()
+            let mudMapCmd = MudMap.parseOrExit(raw.isEmpty ? [] : splitCommandLine(raw))
+            try? mudMapCmd.run()
             waitForEnter()
             return true
         default:
@@ -242,7 +242,7 @@ enum SplashMenu {
         let pad = "  "
 
         printTopBorder(width: boxW, pad: pad)
-        printBoxLine("  \(PINK)Show me the shit on my Mac\(RESET) \(DIM)— and make it easy to see.\(RESET)", width: boxW, pad: pad)
+        printBoxLine("  \(PINK)Find fat folders and files on your Mac.\(RESET)", width: boxW, pad: pad)
         printBoxLine("", width: boxW, pad: pad)
 
         for (idx, item) in MENU_ITEMS.enumerated() {
@@ -263,8 +263,8 @@ enum SplashMenu {
         }
 
         printBoxLine("", width: boxW, pad: pad)
-        printBoxLine("  \(DIM)piggy [action] [what] [where]   what: apps imgs vids docs\(RESET)", width: boxW, pad: pad)
-        printBoxLine("  \(DIM)looks first; no surprise trash\(RESET)", width: boxW, pad: pad)
+        printBoxLine("  \(DIM)piggy [action] [what] [where]\(RESET)", width: boxW, pad: pad)
+        printBoxLine("  \(DIM)what = apps, imgs, vids, or docs\(RESET)", width: boxW, pad: pad)
         printBoxLine("", width: boxW, pad: pad)
         printBoxLine("  \(MAUVE)↑↓\(RESET) move   \(MAUVE)↵\(RESET) choose   \(MAUVE)1-4\(RESET) pick   \(MAUVE)h\(RESET) help   \(MAUVE)q\(RESET) leave", width: boxW, pad: pad)
         print("\(pad)\(BORDER)╰\(String(repeating: "─", count: boxW))╯\(RESET)")
@@ -349,19 +349,23 @@ enum SplashMenu {
     // MARK: - Help
 
     private static func printNonInteractiveHelp() {
-        print("Piggy - show me the shit on my Mac")
+        print("PIGGY")
+        print("Find fat folders and files on your Mac.")
         print("")
-        print("Architecture: piggy [action] [what] [where]")
-        print("Actions: sniff, snort, search, stye")
-        print("What: apps, imgs, vids, docs")
-        print("Promise: looks first; no surprise deletes")
+        print("  1  Sniff    See a simple view of fat folders and files")
+        print("  2  Snort    See a detailed view of fat folders and files")
+        print("  3  Search   See specific files, folders, apps / imgs / vids / docs")
+        print("  4  Mud map  See a mud map of your folders")
+        print("")
+        print("piggy [action] [what] [where]")
+        print("what = apps, imgs, vids, or docs")
         print("")
         print("Try:")
         print("  piggy sniff")
         print("  piggy sniff apps")
         print("  piggy sniff imgs ~/Pictures")
         print("  piggy search docs tax ~/Documents")
-        print("  piggy stye ~/Downloads")
+        print("  piggy mudmap ~/Downloads")
         print("")
         print("Use `piggy --help` for the full list.")
     }
@@ -376,7 +380,7 @@ enum SplashMenu {
         print("  \(PINK)Friendly architecture:\(RESET)")
         print("    piggy [action] [what] [where]")
         print("")
-        print("  \(PINK)Actions:\(RESET) sniff, snort, search, stye")
+        print("  \(PINK)Actions:\(RESET) sniff, snort, search, mudmap")
         print("  \(PINK)What:\(RESET)    apps, imgs, vids, docs")
         print("")
         print("  \(PINK)Examples:\(RESET)")
@@ -385,7 +389,7 @@ enum SplashMenu {
         print("    piggy sniff imgs ~/Pictures         Image pile")
         print("    piggy snort docs ~/Documents        Detailed document pile")
         print("    piggy search docs tax ~/Documents   Find document stuff")
-        print("    piggy stye ~/Downloads              Show the pigsty shape")
+        print("    piggy mudmap ~/Downloads            See the mud map")
         print("    piggy delete \"Slack\"                Ask before moving an app to Trash")
         print("")
     }

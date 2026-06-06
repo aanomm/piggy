@@ -22,9 +22,10 @@ struct Sniff: ParsableCommand {
     }
 }
 
-struct Stye: ParsableCommand {
+struct MudMap: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Show the pigsty: piggy stye [where]"
+        commandName: "mudmap",
+        abstract: "Mud map: piggy mudmap [where]"
     )
 
     @Argument(help: "Where to map. Defaults to the current folder.")
@@ -34,10 +35,70 @@ struct Stye: ParsableCommand {
     var limit: Int = 25
 
     func run() throws {
-        let plan = try PiggyCommandPlan.parse(action: .stye, words: words)
-        let folders = Folders.parseOrExit([plan.where, "--limit", "\(limit)", "--depth", "2", "--activity", plan.action.rawValue])
-        try folders.run()
+        try runMudMap(words: words, limit: limit)
     }
+}
+
+struct Mud: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "mud",
+        abstract: "Alias for `piggy mudmap`",
+        shouldDisplay: false
+    )
+
+    @Argument(help: .hidden)
+    var words: [String] = []
+
+    @Option(name: .shortAndLong, help: .hidden)
+    var limit: Int = 25
+
+    func run() throws {
+        var mudWords = words
+        if mudWords.first?.lowercased() == "map" { mudWords.removeFirst() }
+        try runMudMap(words: mudWords, limit: limit)
+    }
+}
+
+struct Map: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "map",
+        abstract: "Alias for `piggy mudmap`",
+        shouldDisplay: false
+    )
+
+    @Argument(help: .hidden)
+    var words: [String] = []
+
+    @Option(name: .shortAndLong, help: .hidden)
+    var limit: Int = 25
+
+    func run() throws {
+        try runMudMap(words: words, limit: limit)
+    }
+}
+
+struct Stye: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "stye",
+        abstract: "Legacy alias for `piggy mudmap`",
+        shouldDisplay: false
+    )
+
+    @Argument(help: .hidden)
+    var words: [String] = []
+
+    @Option(name: .shortAndLong, help: .hidden)
+    var limit: Int = 25
+
+    func run() throws {
+        try runMudMap(words: words, limit: limit)
+    }
+}
+
+private func runMudMap(words: [String], limit: Int) throws {
+    let plan = try PiggyCommandPlan.parse(action: .mudmap, words: words)
+    let folders = Folders.parseOrExit([plan.where, "--limit", "\(limit)", "--depth", "2", "--activity", plan.action.rawValue])
+    try folders.run()
 }
 
 enum PiggyActionRunner {
@@ -49,7 +110,7 @@ enum PiggyActionRunner {
             try runSnort(plan, limit: limit, fresh: fresh)
         case .search:
             try runSearch(plan, limit: limit)
-        case .stye:
+        case .mudmap:
             let folders = Folders.parseOrExit([plan.where, "--limit", "\(limit)", "--depth", "2", "--activity", plan.action.rawValue])
             try folders.run()
         }

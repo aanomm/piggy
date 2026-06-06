@@ -8,7 +8,7 @@ func piggyActivityGerund(_ raw: String) -> String {
     switch raw.lowercased() {
     case "snort", "snorting": return "snorting"
     case "search", "searching": return "searching"
-    case "stye", "map", "mapping": return "mapping"
+    case "mudmap", "mud-map", "mud map", "stye", "map", "mapping": return "mapping"
     default: return "sniffing"
     }
 }
@@ -17,7 +17,7 @@ func piggyActivityName(_ raw: String) -> String {
     switch raw.lowercased() {
     case "snort", "snorting": return "snort"
     case "search", "searching": return "search"
-    case "stye", "map", "mapping": return "stye"
+    case "mudmap", "mud-map", "mud map", "stye", "map", "mapping": return "mud map"
     default: return "sniff"
     }
 }

@@ -4,7 +4,7 @@ public enum PiggyAction: String, Equatable, Sendable {
     case sniff
     case snort
     case search
-    case stye
+    case mudmap
 }
 
 public enum PiggyWhat: String, Equatable, Sendable, CaseIterable {
@@ -93,7 +93,7 @@ public struct PiggyCommandPlan: Equatable, Sendable {
             guard !query.isEmpty else { throw PiggyCommandPlanError.missingSearchQuery }
             return PiggyCommandPlan(action: action, what: what, where: whereValue, sort: sort, query: query)
 
-        case .stye:
+        case .mudmap:
             if let first = remaining.first {
                 whereValue = first
             }

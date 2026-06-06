@@ -15,18 +15,18 @@ enum Banner {
     static let art = #"""
 \#(dim)╭────────────────────────────────────────────────────────────────────────╮
 \#(pink)│  PIGGY                                                   \#(blush)(oo)\#(pink)          │
-\#(pink)│  Show me the shit on my Mac — and make it easy to see.                 │
+\#(pink)│  Find fat folders and files on your Mac.                               │
 \#(dim)╰────────────────────────────────────────────────────────────────────────╯\#(reset)
 
 """#
 
     static let mini = #"""
-\#(pink) PIGGY\#(reset)  \#(dim)Show me the shit on my Mac — easy to see.\#(reset)
+\#(pink) PIGGY\#(reset)  \#(dim)Find fat folders and files on your Mac.\#(reset)
 
 """#
 
     static let micro = #"""
-\#(pink) PIGGY\#(reset)  \#(dim)easy to see\#(reset)
+\#(pink) PIGGY\#(reset)  \#(dim)fat files\#(reset)
 
 """#
 

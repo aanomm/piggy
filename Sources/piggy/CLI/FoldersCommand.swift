@@ -146,7 +146,7 @@ struct Folders: ParsableCommand {
         print(CLITheme.section("Try next:"))
         print("  \(CLITheme.command("piggy sniff ~/Downloads"))")
         print("  \(CLITheme.command("piggy snort ~/Library"))")
-        print("  \(CLITheme.command("piggy stye ~/Downloads"))")
+        print("  \(CLITheme.command("piggy mudmap ~/Downloads"))")
         print("")
     }
 
