@@ -22,9 +22,6 @@ private let MENU_ITEMS: [(String, String, String)] = [
     ("2", "Snort",   "deeper look with more detail"),
     ("3", "Search",  "find apps, imgs, vids, docs"),
     ("4", "Stye",    "show the pigsty map for a folder"),
-    ("5", "Apps",    "shortcut: sniff your Mac app pile"),
-    ("6", "Help",    "copy-paste examples and target words"),
-    ("7", "Play",    "open the interactive Piggy browser"),
 ]
 
 enum SplashMenu {
@@ -79,18 +76,6 @@ enum SplashMenu {
                 case "4":
                     if !executeMenuItem(3, termOrig: &orig) { return }
                     isFirstRender = false
-                case "5":
-                    if !executeMenuItem(4, termOrig: &orig) { return }
-                    isFirstRender = false
-                case "6":
-                    if !executeMenuItem(5, termOrig: &orig) { return }
-                    isFirstRender = false
-                case "7":
-                    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig)
-                    print("")
-                    fflush(stdout)
-                    AppTUI.run()
-                    return
                 case "q":
                     restoreTerm()
                     print("  \(PINK)Oink!\(RESET)\n")
@@ -178,7 +163,7 @@ enum SplashMenu {
                     default:
                         let pig = ["(\(PINK)°\(RESET)o\(PINK)°\(RESET))", "(\(PINK)•\(RESET)˕\(PINK)•\(RESET))", "(\(PINK)⇀\(RESET)↼\(PINK)⇀\(RESET))"]
                         let pigface = pig[Int.random(in: 0..<pig.count)]
-                        print("  \(pigface)  Piggy does not know '\(fullInput)' yet. Press 1-7 or h for help.\n")
+                        print("  \(pigface)  Piggy does not know '\(fullInput)' yet. Press 1-4 or h for help.\n")
                     }
                 }
             }
@@ -218,20 +203,6 @@ enum SplashMenu {
             try? styeCmd.run()
             waitForEnter()
             return true
-        case 4:
-            let sniffCmd = Sniff.parseOrExit(["apps"])
-            try? sniffCmd.run()
-            waitForEnter()
-            return true
-        case 5:
-            printHelp()
-            waitForEnter()
-            return true
-        case 6:
-            print("")
-            fflush(stdout)
-            AppTUI.run()
-            return false
         default:
             return true
         }
@@ -295,7 +266,7 @@ enum SplashMenu {
         }
 
         printBoxLine("", width: boxW, pad: pad)
-        printBoxLine("  \(MAUVE)↑↓\(RESET) move   \(MAUVE)↵\(RESET) choose   \(MAUVE)1-7\(RESET) quick pick   \(MAUVE)q\(RESET) leave   \(MAUVE)h\(RESET) help", width: boxW, pad: pad)
+        printBoxLine("  \(MAUVE)↑↓\(RESET) move   \(MAUVE)↵\(RESET) choose   \(MAUVE)1-4\(RESET) quick pick   \(MAUVE)q\(RESET) leave   \(MAUVE)h\(RESET) help", width: boxW, pad: pad)
         printBoxLine("  \(DIM)piggy [action] [what] [where]  •  what = apps/imgs/vids/docs\(RESET)", width: boxW, pad: pad)
         print("\(pad)\(BORDER)╰\(String(repeating: "─", count: boxW))╯\(RESET)")
         print("")
