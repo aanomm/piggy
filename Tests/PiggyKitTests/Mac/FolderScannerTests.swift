@@ -32,6 +32,20 @@ final class FolderScannerTests: XCTestCase {
         XCTAssertEqual(folders.map(\.totalBytes), [5, 5])
     }
 
+    func testScanSummaryReportsUniqueRootBytesWhenNestedFindingsOverlap() throws {
+        let root = try makeTemporaryDirectory()
+        let parent = try makeFolder(named: "Parent", in: root)
+        let child = try makeFolder(named: "Child", in: parent)
+        try writeBytes(5, to: child.appendingPathComponent("child.bin"))
+
+        let result = FolderScanner.scanWithSummary(root: root, maxDepth: 2)
+
+        XCTAssertEqual(result.findings.map(\.totalBytes), [5, 5])
+        XCTAssertEqual(result.summary.totalBytes, 5)
+        XCTAssertEqual(result.summary.filesCounted, 1)
+        XCTAssertEqual(result.summary.statusSummary, "3 folders · 1 file · 5 B")
+    }
+
     func testScanSkipsHiddenFilesAndFoldersByDefault() throws {
         let root = try makeTemporaryDirectory()
         let visible = try makeFolder(named: "Visible", in: root)

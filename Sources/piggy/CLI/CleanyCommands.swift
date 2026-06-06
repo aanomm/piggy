@@ -13,13 +13,17 @@ func piggyActivityGerund(_ raw: String) -> String {
     }
 }
 
-func piggyActivityDoneLabel(_ raw: String) -> String {
-    switch piggyActivityGerund(raw) {
-    case "snorting": return "Snort complete"
-    case "searching": return "Search complete"
-    case "mapping": return "Stye map complete"
-    default: return "Sniff complete"
+func piggyActivityName(_ raw: String) -> String {
+    switch raw.lowercased() {
+    case "snort", "snorting": return "snort"
+    case "search", "searching": return "search"
+    case "stye", "map", "mapping": return "stye"
+    default: return "sniff"
     }
+}
+
+func piggyActivityDoneLabel(_ raw: String) -> String {
+    "Piggy \(piggyActivityName(raw)) is complete"
 }
 
 func scannedApps(useDiskCache: Bool = true, activity: String = "sniff") -> [AppInfo] {
@@ -36,7 +40,7 @@ func scannedApps(useDiskCache: Bool = true, activity: String = "sniff") -> [AppI
         let appName = TerminalActivityIndicator.clipped(name.replacingOccurrences(of: ".app", with: ""), to: 42)
         indicator.update("\(current)/\(total) · \(appName)")
     }
-    indicator.finish("\(piggyActivityGerund(activity)) complete: \(apps.count) apps")
+    indicator.finish("\(apps.count) apps")
     _cachedApps = apps
     AppScanCache.save(apps)
     return apps

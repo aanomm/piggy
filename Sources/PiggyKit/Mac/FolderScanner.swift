@@ -26,8 +26,31 @@ public struct FolderScanProgress: Equatable {
     }
 
     public var statusSummary: String {
-        "\(foldersVisited) folders · \(filesCounted) files · \(ByteFormat.string(bytesCounted))"
+        "\(countLabel(foldersVisited, "folder")) · \(countLabel(filesCounted, "file")) · \(ByteFormat.string(bytesCounted))"
     }
+
+    private func countLabel(_ count: Int, _ singular: String) -> String {
+        count == 1 ? "1 \(singular)" : "\(count) \(singular)s"
+    }
+}
+
+public struct FolderScanSummary: Equatable {
+    public let foldersVisited: Int
+    public let filesCounted: Int
+    public let totalBytes: Int64
+
+    public var statusSummary: String {
+        "\(countLabel(foldersVisited, "folder")) · \(countLabel(filesCounted, "file")) · \(ByteFormat.string(totalBytes))"
+    }
+
+    private func countLabel(_ count: Int, _ singular: String) -> String {
+        count == 1 ? "1 \(singular)" : "\(count) \(singular)s"
+    }
+}
+
+public struct FolderScanResult: Equatable {
+    public let findings: [FolderFinding]
+    public let summary: FolderScanSummary
 }
 
 public enum FolderScanner {
@@ -72,9 +95,25 @@ public enum FolderScanner {
         minimumBytes: Int64 = 0,
         progress: ((FolderScanProgress) -> Void)? = nil
     ) -> [FolderFinding] {
+        scanWithSummary(
+            root: root,
+            maxDepth: maxDepth,
+            includeHidden: includeHidden,
+            minimumBytes: minimumBytes,
+            progress: progress
+        ).findings
+    }
+
+    public static func scanWithSummary(
+        root: URL,
+        maxDepth: Int = 1,
+        includeHidden: Bool = false,
+        minimumBytes: Int64 = 0,
+        progress: ((FolderScanProgress) -> Void)? = nil
+    ) -> FolderScanResult {
         let depthLimit = max(1, maxDepth)
         var progressState = ScanProgressState()
-        let (_, findings) = scanFolder(
+        let (rootMetrics, findings) = scanFolder(
             root,
             depth: 0,
             maxDepth: depthLimit,
@@ -83,7 +122,7 @@ public enum FolderScanner {
             progress: progress
         )
 
-        return findings
+        let sortedFindings = findings
             .filter { $0.totalBytes >= minimumBytes }
             .sorted { lhs, rhs in
                 if lhs.totalBytes != rhs.totalBytes { return lhs.totalBytes > rhs.totalBytes }
@@ -92,6 +131,15 @@ public enum FolderScanner {
                 }
                 return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
             }
+
+        return FolderScanResult(
+            findings: sortedFindings,
+            summary: FolderScanSummary(
+                foldersVisited: progressState.foldersVisited,
+                filesCounted: progressState.filesCounted,
+                totalBytes: rootMetrics.totalBytes
+            )
+        )
     }
 
     private static func scanFolder(

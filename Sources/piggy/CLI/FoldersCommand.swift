@@ -54,7 +54,7 @@ struct Folders: ParsableCommand {
 
         let indicator = TerminalActivityIndicator(action: "Piggy is \(piggyActivityGerund(activity)) through \"\(friendlyRootName(rootURL))\"", doneLabel: piggyActivityDoneLabel(activity))
         indicator.start(displayRoot(rootURL))
-        let findings = FolderScanner.scan(
+        let result = FolderScanner.scanWithSummary(
             root: rootURL,
             maxDepth: depth,
             includeHidden: includeHidden,
@@ -67,7 +67,8 @@ struct Folders: ParsableCommand {
                 indicator.update("\(progress.statusSummary)  ·  \(path)")
             }
         )
-        indicator.finish()
+        indicator.finish(result.summary.statusSummary)
+        let findings = result.findings
         let shown = Array(findings.prefix(max(0, limit)))
 
         guard !shown.isEmpty else {
@@ -76,8 +77,8 @@ struct Folders: ParsableCommand {
             return
         }
 
-        printTable(shown, rootURL: rootURL)
-        printFooter(allFindings: findings, shownCount: shown.count)
+        printTable(shown, rootURL: rootURL, scanTotalBytes: result.summary.totalBytes)
+        printFooter(summary: result.summary, rankedCount: findings.count, shownCount: shown.count)
     }
 
     private func selectedRootPath() -> String {
@@ -97,10 +98,10 @@ struct Folders: ParsableCommand {
         print("\(CLITheme.purple("•")) Looking inside: \(CLITheme.path(displayRoot(rootURL)))")
         print("\(CLITheme.purple("•")) Full path: \(CLITheme.dim(rootURL.path))")
         print("\(CLITheme.purple("•")) Just looking: Piggy will not eat, delete, or edit anything.")
-        print("\(CLITheme.purple("•")) Sniffing and sorting folders by how much space their contents use.")
+        print("\(CLITheme.purple("•")) Ranking folders by how much space their contents use.")
         print("\(CLITheme.purple("•")) Hidden Mac files stay tucked away unless you ask for them.")
         if depth > 1 {
-            print("\(CLITheme.purple("•")) Peeking deeper: Piggy will also show folders inside folders.")
+            print("\(CLITheme.purple("•")) Peeking deeper: nested rows can overlap; scan total counts each file once.")
         }
         if minimumBytes > 0 {
             print("\(CLITheme.purple("•")) Only showing folders at least \(CLITheme.gold(ByteFormat.string(minimumBytes))).")
@@ -111,25 +112,24 @@ struct Folders: ParsableCommand {
         print("")
     }
 
-    private func printTable(_ folders: [FolderFinding], rootURL: URL) {
+    private func printTable(_ folders: [FolderFinding], rootURL: URL, scanTotalBytes: Int64) {
         let numberWidth = max(2, String(folders.count).count + 1)
         let shareWidth = 7
         let barWidth = max(12, min(30, Banner.currentTerminalWidth() / 4))
         let sizeWidth = 11
         let filesWidth = 7
         let nestedWidth = 7
-        let totalBytes = folders.reduce(Int64(0)) { $0 + $1.totalBytes }
         let maxBytes = folders.map(\.totalBytes).max() ?? 0
 
-        print("\(CLITheme.title("Biggest folder snacks")) \(CLITheme.dim("|")) \(CLITheme.label("Shown pile:")) \(CLITheme.gold(ByteFormat.string(totalBytes)))")
+        print(CLITheme.title("Biggest folder snacks"))
 
-        let header = "\(pad("#", numberWidth))  \(pad("Share", shareWidth))  \(pad("Size bar", barWidth))  \(pad("Space", sizeWidth))  \(pad("Files", filesWidth))  \(pad("Folders", nestedWidth))  Folder"
+        let header = "\(pad("#", numberWidth))  \(pad("Of scan", shareWidth))  \(pad("Size bar", barWidth))  \(pad("Space", sizeWidth))  \(pad("Files", filesWidth))  \(pad("Folders", nestedWidth))  Folder"
         print(CLITheme.label(header))
         print(CLITheme.separator(String(repeating: "─", count: header.count)))
 
         for (index, folder) in folders.enumerated() {
             let number = CLITheme.rank(pad("\(index + 1).", numberWidth), index: index)
-            let share = totalBytes > 0 ? Double(folder.totalBytes) / Double(totalBytes) : 0
+            let share = scanTotalBytes > 0 ? Double(folder.totalBytes) / Double(scanTotalBytes) : 0
             let shareText = CLITheme.rank(pad(String(format: "%.1f%%", share * 100), shareWidth), index: index)
             let bar = CLITheme.bar(value: folder.totalBytes, max: maxBytes, width: barWidth, index: index)
             let size = CLITheme.size(pad(folder.formattedSize, sizeWidth), bytes: folder.totalBytes)
@@ -140,11 +140,9 @@ struct Folders: ParsableCommand {
         }
     }
 
-    private func printFooter(allFindings: [FolderFinding], shownCount: Int) {
-        let totalBytes = allFindings.reduce(Int64(0)) { $0 + $1.totalBytes }
-        let totalFiles = allFindings.reduce(0) { $0 + $1.fileCount }
+    private func printFooter(summary: FolderScanSummary, rankedCount: Int, shownCount: Int) {
         print("")
-        print("\(CLITheme.label("Piggy finished \(piggyActivityGerund(activity))")) \(allFindings.count) folders \(CLITheme.dim("|")) \(CLITheme.label("showed")) \(shownCount) \(CLITheme.dim("|")) \(CLITheme.label("counted")) \(totalFiles) files \(CLITheme.dim("|")) \(CLITheme.label("space shown")) \(CLITheme.gold(ByteFormat.string(totalBytes)))")
+        print("\(CLITheme.label("Piggy \(piggyActivityName(activity)) summary")) \(CLITheme.dim("|")) \(CLITheme.label("scanned")) \(countLabel(summary.foldersVisited, "folder")) \(CLITheme.dim("|")) \(CLITheme.label("counted")) \(countLabel(summary.filesCounted, "file")) \(CLITheme.dim("|")) \(CLITheme.label("scan total")) \(CLITheme.gold(ByteFormat.string(summary.totalBytes))) \(CLITheme.dim("|")) \(CLITheme.label("ranked")) \(rankedCount) \(CLITheme.dim("|")) \(CLITheme.label("showed")) \(shownCount)")
         print(CLITheme.section("Try next:"))
         print("  \(CLITheme.command("piggy sniff ~/Downloads"))")
         print("  \(CLITheme.command("piggy snort ~/Library"))")
@@ -185,6 +183,10 @@ struct Folders: ParsableCommand {
 
     private func pad(_ value: String, _ width: Int) -> String {
         value.padding(toLength: width, withPad: " ", startingAt: 0)
+    }
+
+    private func countLabel(_ count: Int, _ singular: String) -> String {
+        count == 1 ? "1 \(singular)" : "\(count) \(singular)s"
     }
 }
 
