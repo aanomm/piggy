@@ -62,6 +62,10 @@ enum SplashMenu {
                     return
                 }
                 isFirstRender = false
+            case .escape, .controlC:
+                restoreTerm()
+                print("  \(PINK)Oink!\(RESET)\n")
+                return
             case .char(let ch):
                 switch ch {
                 case "1":
@@ -76,14 +80,14 @@ enum SplashMenu {
                 case "4":
                     if !executeMenuItem(3, termOrig: &orig) { return }
                     isFirstRender = false
-                case "q":
+                case "q", "Q":
                     restoreTerm()
                     print("  \(PINK)Oink!\(RESET)\n")
                     return
                 case "h":
                     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig)
                     printHelp()
-                    waitForEnter()
+                    if !waitForMenuChoice(termOrig: &orig) { return }
                     isFirstRender = false
                 default:
                     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig)
@@ -95,32 +99,32 @@ enum SplashMenu {
                     case "audit", "a", "mac audit":
                         let auditCmd = Audit.parseOrExit([])
                         try? auditCmd.run()
-                        waitForEnter()
+                        if !waitForMenuChoice(termOrig: &orig) { return }
                         isFirstRender = false
                     case "folders", "folder", "f":
                         let foldersCmd = Folders.parseOrExit([])
                         try? foldersCmd.run()
-                        waitForEnter()
+                        if !waitForMenuChoice(termOrig: &orig) { return }
                         isFirstRender = false
                     case "snort", "snort big", "big", "list", "l":
                         let snortCmd = Snort.parseOrExit([])
                         try? snortCmd.run()
-                        waitForEnter()
+                        if !waitForMenuChoice(termOrig: &orig) { return }
                         isFirstRender = false
                     case "snort small", "small":
                         let snortCmd = Snort.parseOrExit(["small"])
                         try? snortCmd.run()
-                        waitForEnter()
+                        if !waitForMenuChoice(termOrig: &orig) { return }
                         isFirstRender = false
                     case "snort new", "new":
                         let snortCmd = Snort.parseOrExit(["new"])
                         try? snortCmd.run()
-                        waitForEnter()
+                        if !waitForMenuChoice(termOrig: &orig) { return }
                         isFirstRender = false
                     case "snort old", "old":
                         let snortCmd = Snort.parseOrExit(["old"])
                         try? snortCmd.run()
-                        waitForEnter()
+                        if !waitForMenuChoice(termOrig: &orig) { return }
                         isFirstRender = false
                     case "info", "i":
                         print("  App name or bundle ID: ", terminator: "")
@@ -128,7 +132,7 @@ enum SplashMenu {
                         if let name = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
                             let infoCmd = Info.parseOrExit([name])
                             try? infoCmd.run()
-                            waitForEnter()
+                            if !waitForMenuChoice(termOrig: &orig) { return }
                         } else {
                             print("  🐽 No problem. Piggy did not do anything.\n")
                         }
@@ -139,7 +143,7 @@ enum SplashMenu {
                         if let query = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !query.isEmpty {
                             let searchCmd = Search.parseOrExit([query])
                             try? searchCmd.run()
-                            waitForEnter()
+                            if !waitForMenuChoice(termOrig: &orig) { return }
                         } else {
                             print("  🐽 No problem. Piggy did not do anything.\n")
                         }
@@ -147,18 +151,18 @@ enum SplashMenu {
                     case "export", "e":
                         let exportCmd = Export.parseOrExit([])
                         try? exportCmd.run()
-                        waitForEnter()
+                        if !waitForMenuChoice(termOrig: &orig) { return }
                         isFirstRender = false
                     case "tui", "t":
                         AppTUI.run()
                         return
-                case "quit", "exit":
-                    restoreTerm()
-                    print("  \(PINK)Oink!\(RESET)\n")
-                    return
+                    case "quit", "exit":
+                        restoreTerm()
+                        print("  \(PINK)Oink!\(RESET)\n")
+                        return
                     case "help", "?":
                         printHelp()
-                        waitForEnter()
+                        if !waitForMenuChoice(termOrig: &orig) { return }
                         isFirstRender = false
                     default:
                         let pig = ["(\(PINK)°\(RESET)o\(PINK)°\(RESET))", "(\(PINK)•\(RESET)˕\(PINK)•\(RESET))", "(\(PINK)⇀\(RESET)↼\(PINK)⇀\(RESET))"]
@@ -177,20 +181,18 @@ enum SplashMenu {
         case 0:
             let sniffCmd = Sniff.parseOrExit([])
             try? sniffCmd.run()
-            waitForEnter()
-            return true
+            return waitForMenuChoice(termOrig: &termOrig)
         case 1:
             let snortCmd = Snort.parseOrExit([])
             try? snortCmd.run()
-            waitForEnter()
-            return true
+            return waitForMenuChoice(termOrig: &termOrig)
         case 2:
             print("  Search what? Try \(PINK)docs tax ~/Documents\(RESET) or \(PINK)apps xcode\(RESET): piggy search ", terminator: "")
             fflush(stdout)
             if let query = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !query.isEmpty {
                 let searchCmd = Search.parseOrExit(splitCommandLine(query))
                 try? searchCmd.run()
-                waitForEnter()
+                if !waitForMenuChoice(termOrig: &termOrig) { return false }
             } else {
                 print("  🐽 No problem. Piggy did not do anything.\n")
             }
@@ -201,17 +203,41 @@ enum SplashMenu {
             let raw = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let mudMapCmd = MudMap.parseOrExit(raw.isEmpty ? [] : splitCommandLine(raw))
             try? mudMapCmd.run()
-            waitForEnter()
-            return true
+            return waitForMenuChoice(termOrig: &termOrig)
         default:
             return true
         }
     }
 
-    private static func waitForEnter() {
-        print("\n  \(MAUVE)Press Enter to return to menu...\(RESET)", terminator: "")
+    private static func waitForMenuChoice(termOrig: inout termios) -> Bool {
+        print("\n  \(MAUVE)Esc/Enter Back\(RESET)  \(DIM)|\(RESET)  \(MAUVE)Q/Ctrl+C Quit\(RESET)", terminator: "")
         fflush(stdout)
-        _ = readLine()
+
+        var raw = termOrig
+        raw.c_lflag &= ~tcflag_t(ECHO | ICANON | ISIG | IEXTEN)
+        raw.c_iflag &= ~tcflag_t(IXON | ICRNL | BRKINT | INPCK | ISTRIP)
+        raw.c_cflag |= tcflag_t(CS8)
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw)
+        defer { tcsetattr(STDIN_FILENO, TCSAFLUSH, &termOrig) }
+
+        while true {
+            guard let key = readMenuKey() else { continue }
+            switch key {
+            case .enter, .escape:
+                print("")
+                return true
+            case .controlC:
+                print("\n  \(PINK)Oink!\(RESET)\n")
+                return false
+            case .char(let ch):
+                if ch == "q" || ch == "Q" {
+                    print("\n  \(PINK)Oink!\(RESET)\n")
+                    return false
+                }
+            default:
+                continue
+            }
+        }
     }
 
     private static func restoreTerm() {
@@ -266,8 +292,9 @@ enum SplashMenu {
         printBoxLine("  \(DIM)piggy [action] [what] [where]\(RESET)", width: boxW, pad: pad)
         printBoxLine("  \(DIM)what = apps, imgs, vids, or docs\(RESET)", width: boxW, pad: pad)
         printBoxLine("", width: boxW, pad: pad)
-        printBoxLine("  \(MAUVE)↑↓\(RESET) move   \(MAUVE)↵\(RESET) choose   \(MAUVE)1-4\(RESET) pick   \(MAUVE)h\(RESET) help   \(MAUVE)q\(RESET) leave", width: boxW, pad: pad)
+        printBoxLine("  \(MAUVE)↑↓\(RESET) move   \(MAUVE)↵\(RESET) choose   \(MAUVE)1-4\(RESET) pick   \(MAUVE)h\(RESET) help", width: boxW, pad: pad)
         print("\(pad)\(BORDER)╰\(String(repeating: "─", count: boxW))╯\(RESET)")
+        print("\(pad)\(DIM)Esc Back  |  Q/Ctrl+C Quit\(RESET)")
         print("")
         fflush(stdout)
     }
@@ -303,6 +330,8 @@ enum SplashMenu {
         case up
         case down
         case enter
+        case escape
+        case controlC
         case char(Character)
     }
 
@@ -327,7 +356,11 @@ enum SplashMenu {
                     }
                 }
             }
-            return nil
+            return .escape
+        }
+
+        if byte == 3 {
+            return .controlC
         }
 
         if byte == 10 || byte == 13 {
