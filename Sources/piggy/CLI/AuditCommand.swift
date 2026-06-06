@@ -22,7 +22,7 @@ struct Audit: ParsableCommand {
 
     private func printSummary(_ summary: MacAuditSummary) {
         print("")
-        print(CLITheme.title("🐽 Oink! Piggy is checking your apps"))
+        print(CLITheme.title("🐽 Oink! Piggy is sniffing through \"apps\""))
         print(CLITheme.separator("──────────────────"))
         print("\(CLITheme.purple("•")) Looking at your installed Mac apps.")
         print("\(CLITheme.purple("•")) Just looking: Piggy will not move, edit, or trash anything.")
@@ -62,10 +62,10 @@ struct Audit: ParsableCommand {
         }
 
         print("")
-        print(CLITheme.section("Try another gentle sniff:"))
-        print("  \(CLITheme.command("piggy mac list --sort size"))")
-        print("  \(CLITheme.command("piggy folders ~/Downloads --limit 25"))")
-        print("  \(CLITheme.command("piggy mac list --rosetta"))")
+        print(CLITheme.section("Try next:"))
+        print("  \(CLITheme.command("piggy sniff apps"))")
+        print("  \(CLITheme.command("piggy snort apps"))")
+        print("  \(CLITheme.command("piggy search apps <words>"))")
         print("  \(CLITheme.command("piggy list --json"))")
         print("")
     }

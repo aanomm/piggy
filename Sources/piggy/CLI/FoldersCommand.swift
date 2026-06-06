@@ -28,6 +28,9 @@ struct Folders: ParsableCommand {
     @Flag(name: .long, help: "Include hidden dotfiles and dotfolders.")
     var includeHidden: Bool = false
 
+    @Option(name: .customLong("activity"), help: .hidden)
+    var activity: String = "sniff"
+
     func run() throws {
         let rootURL = URL(fileURLWithPath: selectedRootPath()).standardizedFileURL
         guard isDirectory(rootURL) else {
@@ -49,8 +52,8 @@ struct Folders: ParsableCommand {
 
         printHeader(rootURL: rootURL, minimumBytes: minimumBytes)
 
-        let indicator = TerminalActivityIndicator(action: "Piggy is rooting for fat folders", doneLabel: "Folder truffle hunt complete")
-        indicator.start("warming up for \(friendlyRootName(rootURL))")
+        let indicator = TerminalActivityIndicator(action: "Piggy is \(piggyActivityGerund(activity)) through \"\(friendlyRootName(rootURL))\"", doneLabel: piggyActivityDoneLabel(activity))
+        indicator.start(displayRoot(rootURL))
         let findings = FolderScanner.scan(
             root: rootURL,
             maxDepth: depth,
@@ -89,7 +92,7 @@ struct Folders: ParsableCommand {
 
     private func printHeader(rootURL: URL, minimumBytes: Int64) {
         print("")
-        print("\(CLITheme.title("🐽 Oink! Piggy is rooting through \"\(friendlyRootName(rootURL))\""))")
+        print("\(CLITheme.title("🐽 Oink! Piggy is \(piggyActivityGerund(activity)) through \"\(friendlyRootName(rootURL))\""))")
         print(CLITheme.separator("─────────────────────"))
         print("\(CLITheme.purple("•")) Looking inside: \(CLITheme.path(displayRoot(rootURL)))")
         print("\(CLITheme.purple("•")) Full path: \(CLITheme.dim(rootURL.path))")
@@ -141,11 +144,11 @@ struct Folders: ParsableCommand {
         let totalBytes = allFindings.reduce(Int64(0)) { $0 + $1.totalBytes }
         let totalFiles = allFindings.reduce(0) { $0 + $1.fileCount }
         print("")
-        print("\(CLITheme.label("Piggy sniffed")) \(allFindings.count) folders \(CLITheme.dim("|")) \(CLITheme.label("showed")) \(shownCount) \(CLITheme.dim("|")) \(CLITheme.label("counted")) \(totalFiles) files \(CLITheme.dim("|")) \(CLITheme.label("space shown")) \(CLITheme.gold(ByteFormat.string(totalBytes)))")
-        print(CLITheme.section("Try another gentle sniff:"))
-        print("  \(CLITheme.command("piggy folders ~/Downloads --limit 25"))")
-        print("  \(CLITheme.command("piggy folders ~/Library --min-size 1gb"))")
-        print("  \(CLITheme.command("piggy mac audit"))")
+        print("\(CLITheme.label("Piggy finished \(piggyActivityGerund(activity))")) \(allFindings.count) folders \(CLITheme.dim("|")) \(CLITheme.label("showed")) \(shownCount) \(CLITheme.dim("|")) \(CLITheme.label("counted")) \(totalFiles) files \(CLITheme.dim("|")) \(CLITheme.label("space shown")) \(CLITheme.gold(ByteFormat.string(totalBytes)))")
+        print(CLITheme.section("Try next:"))
+        print("  \(CLITheme.command("piggy sniff ~/Downloads"))")
+        print("  \(CLITheme.command("piggy snort ~/Library"))")
+        print("  \(CLITheme.command("piggy stye ~/Downloads"))")
         print("")
     }
 
@@ -210,6 +213,9 @@ struct Folder: ParsableCommand {
     @Flag(name: .long, help: "Include hidden dotfiles and dotfolders.")
     var includeHidden: Bool = false
 
+    @Option(name: .customLong("activity"), help: .hidden)
+    var activity: String = "sniff"
+
     func run() throws {
         let args = translatedArgs()
         let command = Folders.parseOrExit(args)
@@ -221,6 +227,7 @@ struct Folder: ParsableCommand {
         if let path { args.append(contentsOf: ["--path", path]) }
         args.append(contentsOf: ["--limit", "\(limit)"])
         args.append(contentsOf: ["--depth", "\(depth)"])
+        args.append(contentsOf: ["--activity", activity])
         if let minSize { args.append(contentsOf: ["--min-size", minSize]) }
         if includeHidden { args.append("--include-hidden") }
         return args

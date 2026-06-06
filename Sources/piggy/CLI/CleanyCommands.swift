@@ -4,7 +4,25 @@ import PiggyKit
 
 nonisolated(unsafe) private var _cachedApps: [AppInfo]?
 
-func scannedApps(useDiskCache: Bool = true) -> [AppInfo] {
+func piggyActivityGerund(_ raw: String) -> String {
+    switch raw.lowercased() {
+    case "snort", "snorting": return "snorting"
+    case "search", "searching": return "searching"
+    case "stye", "map", "mapping": return "mapping"
+    default: return "sniffing"
+    }
+}
+
+func piggyActivityDoneLabel(_ raw: String) -> String {
+    switch piggyActivityGerund(raw) {
+    case "snorting": return "Snort complete"
+    case "searching": return "Search complete"
+    case "mapping": return "Stye map complete"
+    default: return "Sniff complete"
+    }
+}
+
+func scannedApps(useDiskCache: Bool = true, activity: String = "sniff") -> [AppInfo] {
     if let cached = _cachedApps { return cached }
     if useDiskCache, let cached = AppScanCache.loadIfFresh() {
         _cachedApps = cached
@@ -12,13 +30,13 @@ func scannedApps(useDiskCache: Bool = true) -> [AppInfo] {
     }
 
     var apps: [AppInfo] = []
-    let indicator = TerminalActivityIndicator(action: "Piggy is sniffing your apps and looking for fat", doneLabel: "App fat sniff complete")
-    indicator.start("snout down in your Applications folders")
+    let indicator = TerminalActivityIndicator(action: "Piggy is \(piggyActivityGerund(activity)) through \"apps\"", doneLabel: piggyActivityDoneLabel(activity))
+    indicator.start("Applications folders")
     apps = AppScanner.scan { current, total, name in
         let appName = TerminalActivityIndicator.clipped(name.replacingOccurrences(of: ".app", with: ""), to: 42)
         indicator.update("\(current)/\(total) · \(appName)")
     }
-    indicator.finish("\(apps.count) apps sniffed, weighed, and oinked at")
+    indicator.finish("\(piggyActivityGerund(activity)) complete: \(apps.count) apps")
     _cachedApps = apps
     AppScanCache.save(apps)
     return apps
@@ -79,6 +97,9 @@ struct List: ParsableCommand {
     @Flag(name: .long, help: "Print machine-readable JSON instead of the compact table")
     var json: Bool = false
 
+    @Option(name: .customLong("activity"), help: .hidden)
+    var activity: String = "sniff"
+
     func run() throws {
         let apps = loadAndSort()
         if apps.isEmpty {
@@ -99,7 +120,7 @@ struct List: ParsableCommand {
     }
 
     func loadAndSort() -> [AppInfo] {
-        var apps = scannedApps(useDiskCache: !fresh)
+        var apps = scannedApps(useDiskCache: !fresh, activity: activity)
 
         let sk = SortKey(argument: sort) ?? .size
         let ascending = asc
@@ -443,7 +464,7 @@ struct Search: ParsableCommand {
 
     func runLegacyAppSearch() throws {
         let query = words.joined(separator: " ")
-        let apps = scannedApps()
+        let apps = scannedApps(activity: "search")
         let matches = AppSearch.search(apps, query: query)
         let results = matches.apps
 
@@ -563,7 +584,7 @@ struct Orphans: ParsableCommand {
     func run() throws {
         let apps = scannedApps()
         let installedIDs = Set(apps.compactMap { $0.bundleIdentifier })
-        let indicator = TerminalActivityIndicator(action: "Piggy is rooting through leftover app crumbs", doneLabel: "Crumb hunt complete")
+        let indicator = TerminalActivityIndicator(action: "Piggy is sniffing through leftover app crumbs", doneLabel: "Crumb hunt complete")
         indicator.start("snout in your Library support folders")
         let orphans = OrphanScanner.scan(installedBundleIDs: installedIDs) { progress in
             let path = TerminalActivityIndicator.clipped(displayPath(progress.currentURL), to: 44)
@@ -689,7 +710,7 @@ struct Export: ParsableCommand {
 }
 
 private func findRelatedFilesWithActivity(for app: AppInfo) -> [AppRemover.RelatedFile] {
-    let indicator = TerminalActivityIndicator(action: "Piggy is rooting through \(app.displayName)'s app crumbs", doneLabel: "Related crumb hunt complete")
+    let indicator = TerminalActivityIndicator(action: "Piggy is sniffing through \(app.displayName)'s app crumbs", doneLabel: "Related crumb hunt complete")
     indicator.start(app.displayName)
     let related = AppRemover.findRelatedFiles(for: app) { progress in
         indicator.update(progress.statusSummary)

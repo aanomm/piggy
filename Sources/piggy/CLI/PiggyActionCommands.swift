@@ -35,7 +35,7 @@ struct Stye: ParsableCommand {
 
     func run() throws {
         let plan = try PiggyCommandPlan.parse(action: .stye, words: words)
-        let folders = Folders.parseOrExit([plan.where, "--limit", "\(limit)", "--depth", "2"])
+        let folders = Folders.parseOrExit([plan.where, "--limit", "\(limit)", "--depth", "2", "--activity", plan.action.rawValue])
         try folders.run()
     }
 }
@@ -50,21 +50,21 @@ enum PiggyActionRunner {
         case .search:
             try runSearch(plan, limit: limit)
         case .stye:
-            let folders = Folders.parseOrExit([plan.where, "--limit", "\(limit)", "--depth", "2"])
+            let folders = Folders.parseOrExit([plan.where, "--limit", "\(limit)", "--depth", "2", "--activity", plan.action.rawValue])
             try folders.run()
         }
     }
 
     private static func runSniff(_ plan: PiggyCommandPlan, limit: Int, fresh: Bool) throws {
         if plan.what == .apps {
-            let args = listArgs(for: plan.sort, fresh: fresh)
+            let args = listArgs(for: plan.sort, fresh: fresh, activity: plan.action.rawValue)
             let list = List.parseOrExit(args)
             try list.run()
             return
         }
 
         if plan.what == .everything {
-            let folders = Folders.parseOrExit([plan.where, "--limit", "\(limit)"])
+            let folders = Folders.parseOrExit([plan.where, "--limit", "\(limit)", "--activity", plan.action.rawValue])
             try folders.run()
             return
         }
@@ -75,14 +75,14 @@ enum PiggyActionRunner {
 
     private static func runSnort(_ plan: PiggyCommandPlan, limit: Int, fresh: Bool) throws {
         if plan.what == .apps {
-            let args = listArgs(for: plan.sort, fresh: fresh)
+            let args = listArgs(for: plan.sort, fresh: fresh, activity: plan.action.rawValue)
             let list = List.parseOrExit(args)
             try list.run()
             return
         }
 
         if plan.what == .everything {
-            let folders = Folders.parseOrExit([plan.where, "--limit", "\(limit)", "--depth", "2"])
+            let folders = Folders.parseOrExit([plan.where, "--limit", "\(limit)", "--depth", "2", "--activity", plan.action.rawValue])
             try folders.run()
             return
         }
@@ -106,7 +106,7 @@ enum PiggyActionRunner {
         printFileCards(Array(items), plan: plan)
     }
 
-    private static func listArgs(for sort: PiggySort, fresh: Bool) -> [String] {
+    private static func listArgs(for sort: PiggySort, fresh: Bool, activity: String) -> [String] {
         var args: [String]
         switch sort {
         case .big: args = ["--sort", "size"]
@@ -115,6 +115,7 @@ enum PiggyActionRunner {
         case .old: args = ["--sort", "modified", "--asc"]
         }
         if fresh { args.append("--fresh") }
+        args.append(contentsOf: ["--activity", activity])
         return args
     }
 
@@ -157,7 +158,7 @@ enum PiggyActionRunner {
 
     private static func printFileTable(_ items: [PiggyFileItem], plan: PiggyCommandPlan) {
         print("")
-        print(CLITheme.title("🐽 Piggy sniffed \(plan.what.canonical) in \(displayWhere(plan.where))"))
+        print(CLITheme.title("🐽 Piggy is sniffing through \"\(displayWhere(plan.where))\" for \(plan.what.canonical)"))
         print(CLITheme.separator("──────────────────────────"))
         print("\(CLITheme.purple("•")) Just looking: Piggy did not move, edit, or trash anything.")
         print("\(CLITheme.purple("•")) Grammar: \(CLITheme.command("piggy [action] [what] [where]"))")
@@ -177,7 +178,7 @@ enum PiggyActionRunner {
     private static func printFileCards(_ items: [PiggyFileItem], plan: PiggyCommandPlan) {
         print("")
         let queryText = plan.query.map { " matching \"\($0)\"" } ?? ""
-        print(CLITheme.title("🐽 Piggy snorted \(items.count) \(plan.what.canonical)\(queryText)"))
+        print(CLITheme.title("🐽 Piggy is \(piggyActivityGerund(plan.action.rawValue)) through \"\(displayWhere(plan.where))\" for \(plan.what.canonical)\(queryText)"))
         print(CLITheme.separator("──────────────────────────"))
         guard !items.isEmpty else {
             print("No matching stuff found.")
@@ -192,7 +193,12 @@ enum PiggyActionRunner {
     }
 
     private static func displayWhere(_ raw: String) -> String {
-        raw == "." ? "this folder" : raw
+        if raw == "." { return URL(fileURLWithPath: FileManager.default.currentDirectoryPath).lastPathComponent }
+        let expanded = (raw as NSString).expandingTildeInPath
+        let url = URL(fileURLWithPath: expanded).standardizedFileURL
+        let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path
+        if url.path == home { return "Home" }
+        return url.lastPathComponent.isEmpty ? raw : url.lastPathComponent
     }
 
     private static func pad(_ value: String, _ width: Int) -> String {

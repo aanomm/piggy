@@ -203,7 +203,7 @@ final class TerminalActivityIndicator {
     private let enabled: Bool
     private let colorEnabled: Bool
     private let frames = ["|", "/", "-", "\\"]
-    private let verbs = ["sniffing", "checking", "weighing", "sorting"]
+
     private let startedAt = Date()
     private var lastRenderedAt = Date.distantPast
     private var renderCount = 0
@@ -253,11 +253,10 @@ final class TerminalActivityIndicator {
 
         lastRenderedAt = now
         let frame = frames[renderCount % frames.count]
-        let verb = verbs[(renderCount / 8) % verbs.count]
         renderCount += 1
 
         let suffix = status.map { " - \(paint(Self.clipped($0, to: 72), "38;5;179"))" } ?? ""
-        write("\r\u{001B}[2K\(paint(frame, "38;5;141")) \(paint(action, "38;5;175;1")) - \(paint(verb, "38;5;114"))\(suffix)")
+        write("\r\u{001B}[2K\(paint(frame, "38;5;141")) \(paint(action, "38;5;175;1"))\(suffix)")
     }
 
     static func clipped(_ text: String, to maxLength: Int) -> String {
