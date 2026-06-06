@@ -31,11 +31,17 @@ struct MudMap: ParsableCommand {
     @Argument(help: "Where to map. Defaults to the current folder.")
     var words: [String] = []
 
-    @Option(name: .shortAndLong, help: "Number of folders to show")
-    var limit: Int = 25
+    @Option(name: .shortAndLong, help: "Number of entries to show inside each folder")
+    var limit: Int = 30
+
+    @Option(name: .long, help: "How many folder levels to draw")
+    var depth: Int = 3
+
+    @Flag(name: .long, help: "Include hidden files and folders")
+    var includeHidden: Bool = false
 
     func run() throws {
-        try runMudMap(words: words, limit: limit)
+        try runMudMap(words: words, limit: limit, depth: depth, includeHidden: includeHidden)
     }
 }
 
@@ -50,12 +56,18 @@ struct Mud: ParsableCommand {
     var words: [String] = []
 
     @Option(name: .shortAndLong, help: .hidden)
-    var limit: Int = 25
+    var limit: Int = 30
+
+    @Option(name: .long, help: .hidden)
+    var depth: Int = 3
+
+    @Flag(name: .long, help: .hidden)
+    var includeHidden: Bool = false
 
     func run() throws {
         var mudWords = words
         if mudWords.first?.lowercased() == "map" { mudWords.removeFirst() }
-        try runMudMap(words: mudWords, limit: limit)
+        try runMudMap(words: mudWords, limit: limit, depth: depth, includeHidden: includeHidden)
     }
 }
 
@@ -70,10 +82,16 @@ struct Map: ParsableCommand {
     var words: [String] = []
 
     @Option(name: .shortAndLong, help: .hidden)
-    var limit: Int = 25
+    var limit: Int = 30
+
+    @Option(name: .long, help: .hidden)
+    var depth: Int = 3
+
+    @Flag(name: .long, help: .hidden)
+    var includeHidden: Bool = false
 
     func run() throws {
-        try runMudMap(words: words, limit: limit)
+        try runMudMap(words: words, limit: limit, depth: depth, includeHidden: includeHidden)
     }
 }
 
@@ -88,17 +106,85 @@ struct Stye: ParsableCommand {
     var words: [String] = []
 
     @Option(name: .shortAndLong, help: .hidden)
-    var limit: Int = 25
+    var limit: Int = 30
+
+    @Option(name: .long, help: .hidden)
+    var depth: Int = 3
+
+    @Flag(name: .long, help: .hidden)
+    var includeHidden: Bool = false
 
     func run() throws {
-        try runMudMap(words: words, limit: limit)
+        try runMudMap(words: words, limit: limit, depth: depth, includeHidden: includeHidden)
     }
 }
 
-private func runMudMap(words: [String], limit: Int) throws {
+private func runMudMap(words: [String], limit: Int, depth: Int, includeHidden: Bool) throws {
     let plan = try PiggyCommandPlan.parse(action: .mudmap, words: words)
-    let folders = Folders.parseOrExit([plan.where, "--limit", "\(limit)", "--depth", "2", "--activity", plan.action.rawValue])
-    try folders.run()
+    let root = URL(fileURLWithPath: (plan.where as NSString).expandingTildeInPath).standardizedFileURL
+    let indicator = TerminalActivityIndicator(
+        action: "Piggy is mapping \"\(mudMapDisplayRoot(root))\"",
+        doneLabel: piggyActivityDoneLabel(plan.action.rawValue)
+    )
+    indicator.start(root.path)
+    let map = FileTreeMapper.map(
+        root: root,
+        maxDepth: depth,
+        entriesPerFolder: limit,
+        includeHidden: includeHidden
+    )
+    indicator.finish(map.summary.statusSummary)
+    printMudMap(map, root: root, depth: depth, entriesPerFolder: limit, includeHidden: includeHidden)
+}
+
+private func printMudMap(_ map: FileTreeMap, root: URL, depth: Int, entriesPerFolder: Int, includeHidden: Bool) {
+    print("")
+    print(CLITheme.title("🐽 Mud map of \"\(mudMapDisplayRoot(root))\""))
+    print(CLITheme.separator("────────────────"))
+    print("\(CLITheme.purple("•")) Filetree map: folders and files in place, not a biggest-folder ranking.")
+    print("\(CLITheme.purple("•")) Just looking: Piggy did not move, edit, or trash anything.")
+    print("\(CLITheme.purple("•")) Depth: \(max(0, depth)) levels · Entries per folder: \(max(1, entriesPerFolder))")
+    if !includeHidden {
+        print("\(CLITheme.purple("•")) Hidden Mac files stay tucked away unless you ask for them.")
+    }
+    print("")
+    print(CLITheme.path(map.root.name.isEmpty ? root.path : map.root.name) + CLITheme.dim("/ ") + CLITheme.size(ByteFormat.string(map.root.bytes), bytes: map.root.bytes))
+    printMudMapChildren(map.root.children, prefix: "")
+    if map.root.hiddenChildCount > 0 {
+        print("└── … \(map.root.hiddenChildCount) more")
+    }
+    if map.root.isDepthLimited {
+        print("└── … deeper folders hidden by --depth")
+    }
+    print("")
+    print("\(CLITheme.label("Piggy mudmap summary")) \(CLITheme.dim("|")) \(CLITheme.label("folders")) \(map.summary.foldersVisited) \(CLITheme.dim("|")) \(CLITheme.label("files")) \(map.summary.filesMapped) \(CLITheme.dim("|")) \(CLITheme.label("scan total")) \(CLITheme.gold(ByteFormat.string(map.summary.totalBytes)))")
+}
+
+private func printMudMapChildren(_ nodes: [FileTreeNode], prefix: String) {
+    for (index, node) in nodes.enumerated() {
+        let isLast = index == nodes.count - 1
+        let branch = isLast ? "└── " : "├── "
+        let nextPrefix = prefix + (isLast ? "    " : "│   ")
+        let marker = node.isDirectory ? "/" : ""
+        print("\(prefix)\(branch)\(CLITheme.path(node.name))\(CLITheme.dim(marker)) \(CLITheme.size(ByteFormat.string(node.bytes), bytes: node.bytes))")
+        if !node.children.isEmpty {
+            printMudMapChildren(node.children, prefix: nextPrefix)
+        }
+        if node.hiddenChildCount > 0 {
+            print("\(nextPrefix)└── … \(node.hiddenChildCount) more")
+        }
+        if node.isDepthLimited {
+            print("\(nextPrefix)└── … deeper folders hidden by --depth")
+        }
+    }
+}
+
+private func mudMapDisplayRoot(_ root: URL) -> String {
+    let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path
+    let path = root.path
+    if path == home { return "~" }
+    if path.hasPrefix(home + "/") { return "~" + String(path.dropFirst(home.count)) }
+    return root.lastPathComponent.isEmpty ? path : root.lastPathComponent
 }
 
 enum PiggyActionRunner {
@@ -111,8 +197,7 @@ enum PiggyActionRunner {
         case .search:
             try runSearch(plan, limit: limit)
         case .mudmap:
-            let folders = Folders.parseOrExit([plan.where, "--limit", "\(limit)", "--depth", "2", "--activity", plan.action.rawValue])
-            try folders.run()
+            try runMudMap(words: [plan.where], limit: limit, depth: 3, includeHidden: false)
         }
     }
 
