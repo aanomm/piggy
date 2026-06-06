@@ -14,44 +14,32 @@ enum Banner {
 
     static let art = #"""
 \#(dim)╭────────────────────────────────────────────────────────────────────────╮
-\#(pink)│  ██████╗ ██╗ ██████╗  ██████╗ ██╗   ██╗   \#(blush)show me the Mac pile\#(dim)         │
-\#(pink)│  ██╔══██╗██║██╔════╝ ██╔════╝ ╚██╗ ██╔╝   \#(mauve)sniff • snort • stye\#(dim)         │
-\#(pink)│  ██████╔╝██║██║  ███╗██║  ███╗ ╚████╔╝                                 │
-\#(pink)│  ██╔═══╝ ██║██║   ██║██║   ██║  ╚██╔╝        \#(bold)\#(pink)LOOKS FIRST, NO TRASH\#(reset)\#(dim)     │
-\#(pink)│  ██║     ██║╚██████╔╝╚██████╔╝   ██║                                   │
-\#(pink)│  ╚═╝     ╚═╝ ╚═════╝  ╚═════╝    ╚═╝                                   │
+\#(pink)│  PIGGY                                                   \#(blush)(oo)\#(pink)          │
+\#(pink)│  Show me the shit on my Mac - and make it easy to see.                 │
 \#(dim)│                                                                        │
-\#(mauve)│         .-""""""""-.           \#(dim)╭───────╮\#(mauve)        \#(blush)apps / imgs\#(mauve)            │
-\#(mauve)│       .'   \#(blush)o\#(mauve)      \#(blush)o\#(mauve)   '.         \#(dim)│  GB   │\#(mauve)        \#(blush)vids / docs\#(mauve)          │
-\#(mauve)│      /        \#(blush)(oo)\#(mauve)       \       \#(dim)╰───┬───╯\#(mauve)        \#(blush)stye map\#(mauve)             │
-\#(mauve)│     |      .-.___.-.      |          \#(dim)│\#(mauve)                                 │
-\#(mauve)│     \       \#(blush)'---'\#(mauve)       /          \#(dim)│\#(mauve)      \#(pink)piggy [action] [what] [where]\#(mauve)│
-\#(mauve)│       '._             _.'         \#(dim)▄┴▄\#(mauve)                                  │
-\#(dim)│             \#(blush)╰─ show me the shit on my Mac — easy to see ─╯\#(dim)             │
+\#(mauve)│  sniff   quick overview - biggest stuff first                          │
+\#(mauve)│  snort   deeper look with more detail                                  │
+\#(mauve)│  search  find apps / imgs / vids / docs                                │
+\#(mauve)│  stye    visual pigsty map                                             │
+\#(dim)│                                                                        │
+\#(blush)│  Grammar: piggy [action] [what] [where]                                │
+\#(blush)│  What:    apps / imgs / vids / docs                                    │
+\#(pink)│  Safety:  looks first, no surprise trash                               │
 \#(dim)╰────────────────────────────────────────────────────────────────────────╯\#(reset)
 
 """#
 
     static let mini = #"""
-\#(pink) ██████╗ ██╗ ██████╗  ██████╗ ██╗   ██╗
-\#(pink) ██╔══██╗██║██╔════╝ ██╔════╝ ╚██╗ ██╔╝   \#(blush)show me the Mac pile\#(reset)
-\#(pink) ██████╔╝██║██║  ███╗██║  ███╗ ╚████╔╝    \#(mauve)sniff • snort • stye\#(reset)
-\#(pink) ██╔═══╝ ██║██║   ██║██║   ██║  ╚██╔╝
-\#(pink) ██║     ██║╚██████╔╝╚██████╔╝   ██║      \#(pink)looks first, no trash\#(reset)
-\#(pink) ╚═╝     ╚═╝ ╚═════╝  ╚═════╝    ╚═╝
-\#(mauve)        .-""""-.
-\#(mauve)      .' \#(blush)o\#(mauve)  \#(blush)o\#(mauve) '.     \#(dim)apps/imgs/vids/docs\#(reset)
-\#(mauve)     /    \#(blush)(oo)\#(mauve)   \    \#(dim)piggy [action] [what] [where]\#(reset)
-\#(mauve)     \   \#(blush)'---'\#(mauve)   /
-\#(mauve)      '.___.__.'
+\#(pink) PIGGY\#(reset)  \#(dim)Show me the shit on my Mac - easy to see.\#(reset)
+\#(mauve) sniff / snort / search / stye\#(reset)
+\#(blush) apps / imgs / vids / docs   \#(pink)looks first, no surprise trash\#(reset)
 
 """#
 
     static let micro = #"""
-\#(pink)  PIGGY\#(reset)  \#(dim)show me the Mac pile\#(reset)
-\#(mauve)  .-""-.   \#(dim)sniff, snort, stye\#(reset)
-\#(mauve) ( \#(blush)o\#(mauve)  \#(blush)o\#(mauve) )  \#(pink)looks first, no trash\#(reset)
-\#(mauve)  ( \#(blush)oo\#(mauve) )
+\#(pink) PIGGY\#(reset)  \#(dim)sniff / snort / stye\#(reset)
+\#(mauve) apps imgs vids docs\#(reset)
+\#(pink) looks first, no trash\#(reset)
 
 """#
 
