@@ -50,9 +50,7 @@ struct Folders: ParsableCommand {
             minimumBytes = 0
         }
 
-        printHeader(rootURL: rootURL, minimumBytes: minimumBytes)
-
-        let indicator = TerminalActivityIndicator(action: "Piggy is \(piggyActivityGerund(activity)) through \"\(friendlyRootName(rootURL))\"", doneLabel: piggyActivityDoneLabel(activity))
+        let indicator = TerminalActivityIndicator(action: "🐽 Oink! Piggy is \(piggyActivityGerund(activity)) through \"\(friendlyRootName(rootURL))\"", doneLabel: piggyActivityDoneLabel(activity))
         indicator.start(displayRoot(rootURL))
         let result = FolderScanner.scanWithSummary(
             root: rootURL,
@@ -77,6 +75,7 @@ struct Folders: ParsableCommand {
             return
         }
 
+        printScanNotes(minimumBytes: minimumBytes)
         printTable(shown, rootURL: rootURL, scanTotalBytes: result.summary.totalBytes)
         printFooter(summary: result.summary, rankedCount: findings.count, shownCount: shown.count)
     }
@@ -91,23 +90,18 @@ struct Folders: ParsableCommand {
         return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir) && isDir.boolValue
     }
 
-    private func printHeader(rootURL: URL, minimumBytes: Int64) {
-        print("")
-        print("\(CLITheme.title("🐽 Oink! Piggy is \(piggyActivityGerund(activity)) through \"\(friendlyRootName(rootURL))\""))")
-        print(CLITheme.separator("─────────────────────"))
-        print("\(CLITheme.purple("•")) Looking inside: \(CLITheme.path(displayRoot(rootURL)))")
-        print("\(CLITheme.purple("•")) Full path: \(CLITheme.dim(rootURL.path))")
-        print("\(CLITheme.purple("•")) Just looking: Piggy will not eat, delete, or edit anything.")
-        print("\(CLITheme.purple("•")) Ranking folders by how much space their contents use.")
-        print("\(CLITheme.purple("•")) Hidden Mac files stay tucked away unless you ask for them.")
-        if depth > 1 {
-            print("\(CLITheme.purple("•")) Peeking deeper: nested rows can overlap; scan total counts each file once.")
-        }
+    private func printScanNotes(minimumBytes: Int64) {
+        var notes: [String] = []
         if minimumBytes > 0 {
-            print("\(CLITheme.purple("•")) Only showing folders at least \(CLITheme.gold(ByteFormat.string(minimumBytes))).")
+            notes.append("Only showing folders at least \(CLITheme.gold(ByteFormat.string(minimumBytes))).")
         }
         if includeHidden {
-            print("\(CLITheme.purple("•")) Hidden Mac files are included this time.")
+            notes.append("Hidden Mac files are included this time.")
+        }
+        guard !notes.isEmpty else { return }
+        print("")
+        for note in notes {
+            print("\(CLITheme.purple("•")) \(note)")
         }
         print("")
     }

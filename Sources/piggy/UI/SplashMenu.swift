@@ -21,7 +21,7 @@ private let MENU_ITEMS: [(String, String, String)] = [
     ("1", "Sniff",   "See a simple view of fat folders and files"),
     ("2", "Snort",   "See a detailed view of fat folders and files"),
     ("3", "Search",  "See specific files, folders, apps / imgs / vids / docs"),
-    ("4", "Mud map", "See a mud map of your folders"),
+    ("4", "Mudmap", "See a mudmap of your folders"),
 ]
 
 enum SplashMenu {
@@ -196,7 +196,7 @@ enum SplashMenu {
             }
             return true
         case 3:
-            print("  Where should Piggy draw the mud map? \(PINK)(blank = this folder)\(RESET): ", terminator: "")
+            print("  Where should Piggy draw the mudmap? \(PINK)(blank = this folder)\(RESET): ", terminator: "")
             fflush(stdout)
             let raw = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let mudMapCmd = MudMap.parseOrExit(raw.isEmpty ? [] : splitCommandLine(raw))
@@ -355,7 +355,7 @@ enum SplashMenu {
         print("  1  Sniff    See a simple view of fat folders and files")
         print("  2  Snort    See a detailed view of fat folders and files")
         print("  3  Search   See specific files, folders, apps / imgs / vids / docs")
-        print("  4  Mud map  See a mud map of your folders")
+        print("  4  Mudmap  See a mudmap of your folders")
         print("")
         print("piggy [action] [what] [where]")
         print("what = apps, imgs, vids, or docs")
@@ -389,7 +389,7 @@ enum SplashMenu {
         print("    piggy sniff imgs ~/Pictures         Image pile")
         print("    piggy snort docs ~/Documents        Detailed document pile")
         print("    piggy search docs tax ~/Documents   Find document stuff")
-        print("    piggy mudmap ~/Downloads            See the mud map")
+        print("    piggy mudmap ~/Downloads            See the mudmap")
         print("    piggy delete \"Slack\"                Ask before moving an app to Trash")
         print("")
     }

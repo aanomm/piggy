@@ -19,6 +19,31 @@ public struct FileTreeMapSummary: Equatable {
     }
 }
 
+public struct FileTreeChildSummary: Equatable {
+    public let folderCount: Int
+    public let folderBytes: Int64
+    public let fileCount: Int
+    public let fileBytes: Int64
+
+    public var totalBytes: Int64 { folderBytes + fileBytes }
+    public var isEmpty: Bool { folderCount == 0 && fileCount == 0 }
+
+    public var inlineOverview: String? {
+        var parts: [String] = []
+        if folderCount > 0 {
+            parts.append("\(countLabel(folderCount, "folder")) \(ByteFormat.string(folderBytes))")
+        }
+        if fileCount > 0 {
+            parts.append("\(countLabel(fileCount, "file")) \(ByteFormat.string(fileBytes))")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    private func countLabel(_ count: Int, _ singular: String) -> String {
+        count == 1 ? "1 \(singular)" : "\(count) \(singular)s"
+    }
+}
+
 public struct FileTreeNode: Equatable {
     public let name: String
     public let url: URL
@@ -27,14 +52,48 @@ public struct FileTreeNode: Equatable {
     public let children: [FileTreeNode]
     public let hiddenChildCount: Int
     public let isDepthLimited: Bool
+    public let childSummary: FileTreeChildSummary?
+
+    public init(
+        name: String,
+        url: URL,
+        isDirectory: Bool,
+        bytes: Int64,
+        children: [FileTreeNode],
+        hiddenChildCount: Int,
+        isDepthLimited: Bool,
+        childSummary: FileTreeChildSummary? = nil
+    ) {
+        self.name = name
+        self.url = url
+        self.isDirectory = isDirectory
+        self.bytes = bytes
+        self.children = children
+        self.hiddenChildCount = hiddenChildCount
+        self.isDepthLimited = isDepthLimited
+        self.childSummary = childSummary
+    }
 
     public var formattedSize: String { ByteFormat.string(bytes) }
+
+    public var inlineLimitNote: String? {
+        var parts: [String] = []
+        if hiddenChildCount > 0 {
+            parts.append("… \(hiddenChildCount) more")
+        }
+        if isDepthLimited {
+            parts.append("… deeper folders hidden by --depth")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: "; ")
+    }
 }
 
 public enum FileTreeMapper {
+    public static let defaultMaxDepth = 1
+
     public static func map(
         root: URL,
-        maxDepth: Int = 3,
+        maxDepth: Int = defaultMaxDepth,
         entriesPerFolder: Int = 30,
         includeHidden: Bool = false
     ) -> FileTreeMap {
@@ -106,14 +165,19 @@ public enum FileTreeMapper {
         summary.foldersVisited += 1
 
         guard depth < maxDepth else {
+            let stats = directoryStats(url, includeHidden: includeHidden)
+            summary.foldersVisited += stats.folderCount
+            summary.filesMapped += stats.fileCount
+            let childSummary = visibleChildSummary(of: url, includeHidden: includeHidden)
             return FileTreeNode(
                 name: name,
                 url: url,
                 isDirectory: true,
-                bytes: directoryByteCount(url, includeHidden: includeHidden),
+                bytes: stats.bytes,
                 children: [],
                 hiddenChildCount: 0,
-                isDepthLimited: true
+                isDepthLimited: true,
+                childSummary: childSummary
             )
         }
 
@@ -163,27 +227,65 @@ public enum FileTreeMapper {
         }
     }
 
-    private static func directoryByteCount(_ url: URL, includeHidden: Bool) -> Int64 {
-        let keys: [URLResourceKey] = [.isRegularFileKey, .isHiddenKey, .isSymbolicLinkKey, .fileSizeKey]
+    private static func visibleChildSummary(of url: URL, includeHidden: Bool) -> FileTreeChildSummary? {
+        let keys: Set<URLResourceKey> = [.isDirectoryKey, .isRegularFileKey, .fileSizeKey]
+        var folderCount = 0
+        var folderBytes: Int64 = 0
+        var fileCount = 0
+        var fileBytes: Int64 = 0
+
+        for child in visibleChildren(of: url, includeHidden: includeHidden) {
+            guard let values = try? child.resourceValues(forKeys: keys) else { continue }
+            if values.isDirectory == true {
+                folderCount += 1
+                folderBytes += directoryStats(child, includeHidden: includeHidden).bytes
+            } else if values.isRegularFile == true {
+                fileCount += 1
+                fileBytes += Int64(values.fileSize ?? 0)
+            }
+        }
+
+        let summary = FileTreeChildSummary(
+            folderCount: folderCount,
+            folderBytes: folderBytes,
+            fileCount: fileCount,
+            fileBytes: fileBytes
+        )
+        return summary.isEmpty ? nil : summary
+    }
+
+    private static func directoryStats(_ url: URL, includeHidden: Bool) -> DirectoryStats {
+        let keys: [URLResourceKey] = [.isRegularFileKey, .isDirectoryKey, .isHiddenKey, .isSymbolicLinkKey, .fileSizeKey]
         let options: FileManager.DirectoryEnumerationOptions = includeHidden ? [] : [.skipsHiddenFiles]
         guard let enumerator = FileManager.default.enumerator(
             at: url,
             includingPropertiesForKeys: keys,
             options: options
-        ) else { return 0 }
+        ) else { return DirectoryStats() }
 
-        var total: Int64 = 0
+        var stats = DirectoryStats()
         for case let item as URL in enumerator {
             guard let values = try? item.resourceValues(forKeys: Set(keys)) else { continue }
             if values.isSymbolicLink == true { continue }
             if !includeHidden, values.isHidden == true { continue }
-            if values.isRegularFile == true { total += Int64(values.fileSize ?? 0) }
+            if values.isDirectory == true {
+                stats.folderCount += 1
+            } else if values.isRegularFile == true {
+                stats.fileCount += 1
+                stats.bytes += Int64(values.fileSize ?? 0)
+            }
         }
-        return total
+        return stats
     }
 
     private struct BuilderSummary {
         var foldersVisited = 0
         var filesMapped = 0
+    }
+
+    private struct DirectoryStats {
+        var folderCount = 0
+        var fileCount = 0
+        var bytes: Int64 = 0
     }
 }

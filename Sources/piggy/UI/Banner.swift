@@ -197,7 +197,7 @@ enum Spinner {
 
 // MARK: - Lightweight CLI Activity
 
-final class TerminalActivityIndicator {
+final class TerminalActivityIndicator: @unchecked Sendable {
     private let action: String
     private let doneLabel: String
     private let enabled: Bool
@@ -205,9 +205,12 @@ final class TerminalActivityIndicator {
     private let frames = ["|", "/", "-", "\\"]
 
     private let startedAt = Date()
-    private var lastRenderedAt = Date.distantPast
+    private let stateLock = NSLock()
+    private let writeLock = NSLock()
     private var renderCount = 0
     private var latestStatus: String?
+    private var running = false
+    private var workerStarted = false
 
     init(action: String, doneLabel: String = "Done") {
         self.action = action
@@ -228,32 +231,58 @@ final class TerminalActivityIndicator {
     }
 
     func start(_ status: String? = nil) {
+        guard enabled else { return }
+        stateLock.lock()
         latestStatus = status
-        render(status: status, force: true)
+        running = true
+        let shouldStartWorker = !workerStarted
+        workerStarted = true
+        stateLock.unlock()
+
+        renderOnce()
+        if shouldStartWorker {
+            Thread.detachNewThread { [weak self] in
+                self?.runAnimationLoop()
+            }
+        }
     }
 
     func update(_ status: String? = nil) {
+        guard enabled else { return }
+        stateLock.lock()
         latestStatus = status ?? latestStatus
-        render(status: latestStatus, force: false)
+        stateLock.unlock()
     }
 
     func finish(_ summary: String? = nil) {
         guard enabled else { return }
-        let elapsed = formatElapsed(max(0.01, Date().timeIntervalSince(startedAt)))
+        stateLock.lock()
+        running = false
         let status = summary ?? latestStatus
+        stateLock.unlock()
+
+        let elapsed = formatElapsed(max(0.01, Date().timeIntervalSince(startedAt)))
         let suffix = status.map { " - \(paint($0, "38;5;179"))" } ?? ""
         write("\r\u{001B}[2K\(paint(doneLabel, "38;5;151;1"))\(suffix) \(paint("in \(elapsed)", "38;5;240"))\n")
     }
 
-    private func render(status: String?, force: Bool) {
-        guard enabled else { return }
+    private func runAnimationLoop() {
+        while true {
+            Thread.sleep(forTimeInterval: 0.10)
+            stateLock.lock()
+            let shouldContinue = running
+            stateLock.unlock()
+            if !shouldContinue { break }
+            renderOnce()
+        }
+    }
 
-        let now = Date()
-        guard force || renderCount == 0 || now.timeIntervalSince(lastRenderedAt) >= 0.08 else { return }
-
-        lastRenderedAt = now
+    private func renderOnce() {
+        stateLock.lock()
+        let status = latestStatus
         let frame = frames[renderCount % frames.count]
         renderCount += 1
+        stateLock.unlock()
 
         let suffix = status.map { " - \(paint(Self.clipped($0, to: 72), "38;5;179"))" } ?? ""
         write("\r\u{001B}[2K\(paint(frame, "38;5;141")) \(paint(action, "38;5;175;1"))\(suffix)")
@@ -272,7 +301,9 @@ final class TerminalActivityIndicator {
     }
 
     private func write(_ text: String) {
+        writeLock.lock()
         FileHandle.standardError.write(Data(text.utf8))
+        writeLock.unlock()
     }
 
     private func paint(_ text: String, _ code: String) -> String {

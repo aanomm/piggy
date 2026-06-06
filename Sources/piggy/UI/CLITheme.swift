@@ -31,6 +31,22 @@ enum CLITheme {
         }
     }
 
+    static func treeGuide(_ text: String) -> String { paint(text, "38;5;250") }
+
+    static func mudMapName(_ text: String, depth: Int, isDirectory: Bool) -> String {
+        guard isDirectory else { return label(text) }
+        switch depth {
+        case 0: return purple(text)
+        case 1: return gold(text)
+        case 2: return blue(text)
+        default: return green(text)
+        }
+    }
+
+    static func mudMapSummary(_ text: String, isFolders: Bool) -> String {
+        isFolders ? blue(text) : label(text)
+    }
+
     static func size(_ text: String, bytes: Int64) -> String {
         let absSize = abs(bytes)
         if absSize >= 10_737_418_240 { return purple(text) }

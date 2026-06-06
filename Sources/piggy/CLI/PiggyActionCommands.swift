@@ -25,17 +25,17 @@ struct Sniff: ParsableCommand {
 struct MudMap: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "mudmap",
-        abstract: "Mud map: piggy mudmap [where]"
+        abstract: "Mudmap: piggy mudmap [depth|all] [where]"
     )
 
-    @Argument(help: "Where to map. Defaults to the current folder.")
+    @Argument(help: "Optional depth/all then where, e.g. 1, 2 ~/Downloads, all ~/Downloads")
     var words: [String] = []
 
     @Option(name: .shortAndLong, help: "Number of entries to show inside each folder")
     var limit: Int = 30
 
-    @Option(name: .long, help: "How many folder levels to draw")
-    var depth: Int = 3
+    @Option(name: .long, help: "How many folder levels to draw. Default: 1. You can also write `piggy mudmap 2` or `piggy mudmap all`.")
+    var depth: Int = FileTreeMapper.defaultMaxDepth
 
     @Flag(name: .long, help: "Include hidden files and folders")
     var includeHidden: Bool = false
@@ -59,7 +59,7 @@ struct Mud: ParsableCommand {
     var limit: Int = 30
 
     @Option(name: .long, help: .hidden)
-    var depth: Int = 3
+    var depth: Int = FileTreeMapper.defaultMaxDepth
 
     @Flag(name: .long, help: .hidden)
     var includeHidden: Bool = false
@@ -85,7 +85,7 @@ struct Map: ParsableCommand {
     var limit: Int = 30
 
     @Option(name: .long, help: .hidden)
-    var depth: Int = 3
+    var depth: Int = FileTreeMapper.defaultMaxDepth
 
     @Flag(name: .long, help: .hidden)
     var includeHidden: Bool = false
@@ -109,7 +109,7 @@ struct Stye: ParsableCommand {
     var limit: Int = 30
 
     @Option(name: .long, help: .hidden)
-    var depth: Int = 3
+    var depth: Int = FileTreeMapper.defaultMaxDepth
 
     @Flag(name: .long, help: .hidden)
     var includeHidden: Bool = false
@@ -119,64 +119,116 @@ struct Stye: ParsableCommand {
     }
 }
 
+private struct MudMapInput {
+    let words: [String]
+    let depth: Int
+    let depthLabel: String
+}
+
+private func resolveMudMapInputs(words: [String], fallbackDepth: Int) -> MudMapInput {
+    var remaining = words
+    var resolvedDepth = fallbackDepth
+    var resolvedDepthLabel = mudMapDepthLabel(fallbackDepth)
+
+    if let first = remaining.first, let depth = mudMapDepthArgument(first) {
+        resolvedDepth = depth
+        resolvedDepthLabel = mudMapDepthLabel(depth)
+        remaining.removeFirst()
+    } else if remaining.count > 1, let last = remaining.last, let depth = mudMapDepthArgument(last) {
+        resolvedDepth = depth
+        resolvedDepthLabel = mudMapDepthLabel(depth)
+        remaining.removeLast()
+    }
+
+    return MudMapInput(words: remaining, depth: resolvedDepth, depthLabel: resolvedDepthLabel)
+}
+
+private func mudMapDepthArgument(_ raw: String) -> Int? {
+    if raw.lowercased() == "all" { return Int.max }
+    guard raw.allSatisfy({ $0.isNumber }), let depth = Int(raw) else { return nil }
+    return max(0, depth)
+}
+
+private func mudMapDepthLabel(_ depth: Int) -> String {
+    if depth == Int.max { return "all levels" }
+    return depth == 1 ? "1 level" : "\(max(0, depth)) levels"
+}
+
 private func runMudMap(words: [String], limit: Int, depth: Int, includeHidden: Bool) throws {
-    let plan = try PiggyCommandPlan.parse(action: .mudmap, words: words)
+    let input = resolveMudMapInputs(words: words, fallbackDepth: depth)
+    let plan = try PiggyCommandPlan.parse(action: .mudmap, words: input.words)
     let root = URL(fileURLWithPath: (plan.where as NSString).expandingTildeInPath).standardizedFileURL
     let indicator = TerminalActivityIndicator(
-        action: "Piggy is mapping \"\(mudMapDisplayRoot(root))\"",
+        action: "🐽 Oink! Piggy is mapping \(input.depthLabel) of \"\(mudMapDisplayRoot(root))\"",
         doneLabel: piggyActivityDoneLabel(plan.action.rawValue)
     )
     indicator.start(root.path)
     let map = FileTreeMapper.map(
         root: root,
-        maxDepth: depth,
+        maxDepth: input.depth,
         entriesPerFolder: limit,
         includeHidden: includeHidden
     )
     indicator.finish(map.summary.statusSummary)
-    printMudMap(map, root: root, depth: depth, entriesPerFolder: limit, includeHidden: includeHidden)
+    printMudMap(map, root: root, depth: input.depth, depthLabel: input.depthLabel, entriesPerFolder: limit, includeHidden: includeHidden)
 }
 
-private func printMudMap(_ map: FileTreeMap, root: URL, depth: Int, entriesPerFolder: Int, includeHidden: Bool) {
+private func printMudMap(_ map: FileTreeMap, root: URL, depth: Int, depthLabel: String, entriesPerFolder: Int, includeHidden: Bool) {
     print("")
-    print(CLITheme.title("🐽 Mud map of \"\(mudMapDisplayRoot(root))\""))
+    print(CLITheme.title("🐽 Mudmap of \"\(mudMapDisplayRoot(root))\""))
     print(CLITheme.separator("────────────────"))
-    print("\(CLITheme.purple("•")) Filetree map: folders and files in place, not a biggest-folder ranking.")
-    print("\(CLITheme.purple("•")) Just looking: Piggy did not move, edit, or trash anything.")
-    print("\(CLITheme.purple("•")) Depth: \(max(0, depth)) levels · Entries per folder: \(max(1, entriesPerFolder))")
-    if !includeHidden {
-        print("\(CLITheme.purple("•")) Hidden Mac files stay tucked away unless you ask for them.")
+    var notes: [String] = []
+    if depth != FileTreeMapper.defaultMaxDepth || entriesPerFolder != 30 {
+        notes.append("Depth: \(depthLabel) · Entries per folder: \(max(1, entriesPerFolder))")
     }
-    print("")
-    print(CLITheme.path(map.root.name.isEmpty ? root.path : map.root.name) + CLITheme.dim("/ ") + CLITheme.size(ByteFormat.string(map.root.bytes), bytes: map.root.bytes))
-    printMudMapChildren(map.root.children, prefix: "")
-    if map.root.hiddenChildCount > 0 {
-        print("└── … \(map.root.hiddenChildCount) more")
+    if includeHidden {
+        notes.append("Hidden Mac files are included this time.")
     }
-    if map.root.isDepthLimited {
-        print("└── … deeper folders hidden by --depth")
+    for note in notes {
+        print("\(CLITheme.purple("•")) \(note)")
+    }
+    if !notes.isEmpty { print("") }
+    print(CLITheme.mudMapName(map.root.name.isEmpty ? root.path : map.root.name, depth: 0, isDirectory: true) + CLITheme.dim("/ ") + CLITheme.size(ByteFormat.string(map.root.bytes), bytes: map.root.bytes) + mudMapInlineSummarySuffix(map.root) + mudMapInlineLimitSuffix(map.root, summarizedInline: map.root.childSummary != nil))
+    if depth > 0 {
+        printMudMapChildren(map.root.children, prefix: "", depth: 1, maxDepth: depth)
     }
     print("")
     print("\(CLITheme.label("Piggy mudmap summary")) \(CLITheme.dim("|")) \(CLITheme.label("folders")) \(map.summary.foldersVisited) \(CLITheme.dim("|")) \(CLITheme.label("files")) \(map.summary.filesMapped) \(CLITheme.dim("|")) \(CLITheme.label("scan total")) \(CLITheme.gold(ByteFormat.string(map.summary.totalBytes)))")
 }
 
-private func printMudMapChildren(_ nodes: [FileTreeNode], prefix: String) {
+private func printMudMapChildren(_ nodes: [FileTreeNode], prefix: String, depth: Int, maxDepth: Int) {
     for (index, node) in nodes.enumerated() {
         let isLast = index == nodes.count - 1
         let branch = isLast ? "└── " : "├── "
         let nextPrefix = prefix + (isLast ? "    " : "│   ")
         let marker = node.isDirectory ? "/" : ""
-        print("\(prefix)\(branch)\(CLITheme.path(node.name))\(CLITheme.dim(marker)) \(CLITheme.size(ByteFormat.string(node.bytes), bytes: node.bytes))")
+        print("\(CLITheme.treeGuide(prefix + branch))\(CLITheme.mudMapName(node.name, depth: depth, isDirectory: node.isDirectory))\(CLITheme.dim(marker)) \(CLITheme.size(ByteFormat.string(node.bytes), bytes: node.bytes))\(mudMapInlineSummarySuffix(node))\(mudMapInlineLimitSuffix(node, summarizedInline: node.childSummary != nil))")
         if !node.children.isEmpty {
-            printMudMapChildren(node.children, prefix: nextPrefix)
-        }
-        if node.hiddenChildCount > 0 {
-            print("\(nextPrefix)└── … \(node.hiddenChildCount) more")
-        }
-        if node.isDepthLimited {
-            print("\(nextPrefix)└── … deeper folders hidden by --depth")
+            printMudMapChildren(node.children, prefix: nextPrefix, depth: depth + 1, maxDepth: maxDepth)
         }
     }
+}
+
+private func countLabel(_ count: Int, _ singular: String) -> String {
+    count == 1 ? "1 \(singular)" : "\(count) \(singular)s"
+}
+
+private func mudMapInlineSummarySuffix(_ node: FileTreeNode) -> String {
+    guard let summary = node.childSummary, summary.inlineOverview != nil else { return "" }
+    var parts: [String] = []
+    if summary.folderCount > 0 {
+        parts.append("\(CLITheme.mudMapSummary(countLabel(summary.folderCount, "folder"), isFolders: true)) \(CLITheme.size(ByteFormat.string(summary.folderBytes), bytes: summary.folderBytes))")
+    }
+    if summary.fileCount > 0 {
+        parts.append("\(CLITheme.mudMapSummary(countLabel(summary.fileCount, "file"), isFolders: false)) \(CLITheme.size(ByteFormat.string(summary.fileBytes), bytes: summary.fileBytes))")
+    }
+    return parts.isEmpty ? "" : CLITheme.dim(" · ") + parts.joined(separator: CLITheme.dim(" · "))
+}
+
+private func mudMapInlineLimitSuffix(_ node: FileTreeNode, summarizedInline: Bool = false) -> String {
+    if summarizedInline, node.hiddenChildCount == 0 { return "" }
+    guard let note = node.inlineLimitNote else { return "" }
+    return CLITheme.dim("  \(note)")
 }
 
 private func mudMapDisplayRoot(_ root: URL) -> String {
@@ -197,7 +249,7 @@ enum PiggyActionRunner {
         case .search:
             try runSearch(plan, limit: limit)
         case .mudmap:
-            try runMudMap(words: [plan.where], limit: limit, depth: 3, includeHidden: false)
+            try runMudMap(words: [plan.where], limit: limit, depth: FileTreeMapper.defaultMaxDepth, includeHidden: false)
         }
     }
 
@@ -215,7 +267,7 @@ enum PiggyActionRunner {
             return
         }
 
-        let items = scanFiles(what: plan.what, where: plan.where, sort: plan.sort, limit: limit)
+        let items = scanFiles(what: plan.what, where: plan.where, sort: plan.sort, limit: limit, activity: plan.action.rawValue)
         printFileTable(items, plan: plan)
     }
 
@@ -233,7 +285,7 @@ enum PiggyActionRunner {
             return
         }
 
-        let items = scanFiles(what: plan.what, where: plan.where, sort: plan.sort, limit: limit)
+        let items = scanFiles(what: plan.what, where: plan.where, sort: plan.sort, limit: limit, activity: plan.action.rawValue)
         printFileCards(items, plan: plan)
     }
 
@@ -246,7 +298,7 @@ enum PiggyActionRunner {
         }
 
         let scope = plan.what == .everything ? .everything : plan.what
-        let items = scanFiles(what: scope, where: plan.where, sort: .big, limit: Int.max)
+        let items = scanFiles(what: scope, where: plan.where, sort: .big, limit: Int.max, activity: plan.action.rawValue)
             .filter { $0.name.localizedCaseInsensitiveContains(query) || $0.displayPath.localizedCaseInsensitiveContains(query) }
             .prefix(limit)
         printFileCards(Array(items), plan: plan)
@@ -265,21 +317,33 @@ enum PiggyActionRunner {
         return args
     }
 
-    private static func scanFiles(what: PiggyWhat, where rawPath: String, sort: PiggySort, limit: Int) -> [PiggyFileItem] {
+    private static func scanFiles(what: PiggyWhat, where rawPath: String, sort: PiggySort, limit: Int, activity: String) -> [PiggyFileItem] {
         let root = URL(fileURLWithPath: (rawPath as NSString).expandingTildeInPath).standardizedFileURL
         let exts = extensions(for: what)
         let keys: Set<URLResourceKey> = [.fileSizeKey, .contentModificationDateKey, .isRegularFileKey, .isHiddenKey, .isSymbolicLinkKey]
+        let indicator = TerminalActivityIndicator(
+            action: "🐽 Oink! Piggy is \(piggyActivityGerund(activity)) through \"\(displayWhere(rawPath))\" for \(what.canonical)",
+            doneLabel: piggyActivityDoneLabel(activity)
+        )
+        indicator.start(root.path)
         guard let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: Array(keys), options: [.skipsHiddenFiles, .skipsPackageDescendants]) else {
+            indicator.finish("0 files")
             return []
         }
 
         var items: [PiggyFileItem] = []
+        var seen = 0
         for case let url as URL in enumerator {
+            seen += 1
+            if seen == 1 || seen % 50 == 0 {
+                indicator.update("\(seen) checked · \(TerminalActivityIndicator.clipped(url.lastPathComponent, to: 42))")
+            }
             guard let values = try? url.resourceValues(forKeys: keys), values.isRegularFile == true, values.isSymbolicLink != true else { continue }
             let ext = url.pathExtension.lowercased()
             if !exts.isEmpty && !exts.contains(ext) { continue }
             items.append(PiggyFileItem(url: url, root: root, bytes: Int64(values.fileSize ?? 0), modified: values.contentModificationDate))
         }
+        indicator.finish("\(items.count) matched · \(seen) checked")
 
         items.sort { lhs, rhs in
             switch sort {
@@ -304,15 +368,12 @@ enum PiggyActionRunner {
 
     private static func printFileTable(_ items: [PiggyFileItem], plan: PiggyCommandPlan) {
         print("")
-        print(CLITheme.title("🐽 Piggy is sniffing through \"\(displayWhere(plan.where))\" for \(plan.what.canonical)"))
-        print(CLITheme.separator("──────────────────────────"))
-        print("\(CLITheme.purple("•")) Just looking: Piggy did not move, edit, or trash anything.")
-        print("\(CLITheme.purple("•")) Grammar: \(CLITheme.command("piggy [action] [what] [where]"))")
-        print("")
         guard !items.isEmpty else {
             print("🐽 No \(plan.what.canonical) found here.")
             return
         }
+        print(CLITheme.title("🐽 \(plan.what.canonical.capitalized) snacks"))
+        print(CLITheme.separator("──────────────────────────"))
         let nameW = min(max(items.map(\.name.count).max() ?? 12, 12), 36)
         print("#   \(pad("Size", 10))  \(pad("What", nameW))  Where")
         print(String(repeating: "─", count: min(90, nameW + 30)))
@@ -324,7 +385,7 @@ enum PiggyActionRunner {
     private static func printFileCards(_ items: [PiggyFileItem], plan: PiggyCommandPlan) {
         print("")
         let queryText = plan.query.map { " matching \"\($0)\"" } ?? ""
-        print(CLITheme.title("🐽 Piggy is \(piggyActivityGerund(plan.action.rawValue)) through \"\(displayWhere(plan.where))\" for \(plan.what.canonical)\(queryText)"))
+        print(CLITheme.title("🐽 \(plan.what.canonical.capitalized) snacks\(queryText)"))
         print(CLITheme.separator("──────────────────────────"))
         guard !items.isEmpty else {
             print("No matching stuff found.")

@@ -10,7 +10,9 @@ piggy sniff apps
 piggy sniff imgs ~/Pictures
 piggy snort docs ~/Documents
 piggy search docs tax ~/Documents
-piggy mudmap ~/Downloads
+piggy mudmap ~/Downloads        # compact 1-level map
+piggy mudmap 2 ~/Downloads      # expand 2 levels
+piggy mudmap all ~/Downloads    # draw every level
 ```
 
 Piggy’s noob-friendly command map is:
@@ -21,6 +23,7 @@ piggy [action] [what] [where]
 
 Actions: `sniff`, `snort`, `search`, `mudmap`.
 What: `apps`, `imgs`, `vids`, `docs`.
+Mudmap also accepts a quick depth before the folder: `piggy mudmap 1`, `piggy mudmap 2 ~/Downloads`, or `piggy mudmap all ~/Downloads`.
 
 ## Why Piggy exists
 
@@ -37,7 +40,7 @@ Piggy’s job is calmer:
 ## Current features
 
 - Noob-friendly command architecture: `piggy [action] [what] [where]`
-- Core actions: `sniff`, `snort`, `search`, and `mudmap` (Mud map)
+- Core actions: `sniff`, `snort`, `search`, and `mudmap`
 - Four-letter what words: `apps`, `imgs`, `vids`, `docs`
 - Folder size audit with recursive file counts: `piggy sniff` / `piggy mudmap ~/Downloads`
 - App scanner for `/Applications`, `/System/Applications`, and `~/Applications`
@@ -181,7 +184,7 @@ Near-term quality gates:
 Media roadmap:
 
 - `piggy [action] [what] [where]` is the stable novice-facing architecture;
-- `piggy mudmap` — mud map of where folder space is going;
+- `piggy mudmap` — mudmap of where folder space is going;
 - `piggy sniff imgs|vids|docs` — read-only largest media/docs in selected folders;
 - richer image/video metadata when privacy-safe and dependency-light;
 - cross-platform core exploration for files/folders/media, with per-platform app inventory modules.
