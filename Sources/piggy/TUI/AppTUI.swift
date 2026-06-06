@@ -135,7 +135,7 @@ enum AppTUI {
             buf += "\r\n"
         }
 
-        let tagline = "\(fg(175))  ~ look, weigh, explain - no surprise deletes ~\(RESET)"
+        let tagline = "\(fg(175))  ~ piggy [action] [what] [where] — apps/imgs/vids/docs ~\(RESET)"
         let tagClean = tagline.replacingOccurrences(of: "\u{1B}\\[[0-9;]*[A-Za-z]", with: "", options: .regularExpression)
         let tagDisplayLen = tagClean.count
         buf += String(repeating: " ", count: max(0, (w - tagDisplayLen) / 2)) + tagline + "\r\n"

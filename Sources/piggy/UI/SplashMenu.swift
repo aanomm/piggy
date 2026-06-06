@@ -18,12 +18,12 @@ private func handleSplashInterrupt(_ signalNumber: Int32) {
 }
 
 private let MENU_ITEMS: [(String, String, String)] = [
-    ("1", "Peek",    "look at your apps without touching anything"),
-    ("2", "Folders", "find the biggest folders in a place you choose"),
-    ("3", "Apps",    "see your fattest apps"),
-    ("4", "Find",    "search for an app by name"),
-    ("5", "Explain", "plain-English notes for one app"),
-    ("6", "Pack",    "save the app list as CSV or JSON"),
+    ("1", "Sniff",   "quick overview — biggest stuff first"),
+    ("2", "Snort",   "deeper look with more detail"),
+    ("3", "Search",  "find apps, imgs, vids, docs"),
+    ("4", "Stye",    "show the pigsty map for a folder"),
+    ("5", "Apps",    "shortcut: sniff your Mac app pile"),
+    ("6", "Help",    "copy-paste examples and target words"),
     ("7", "Play",    "open the interactive Piggy browser"),
 ]
 
@@ -190,45 +190,41 @@ enum SplashMenu {
 
         switch idx {
         case 0:
-            let auditCmd = Audit.parseOrExit([])
-            try? auditCmd.run()
+            let sniffCmd = Sniff.parseOrExit([])
+            try? sniffCmd.run()
             waitForEnter()
             return true
         case 1:
-            let foldersCmd = Folders.parseOrExit([])
-            try? foldersCmd.run()
+            let snortCmd = Snort.parseOrExit([])
+            try? snortCmd.run()
             waitForEnter()
             return true
         case 2:
-            let listCmd = Snort.parseOrExit([])
-            try? listCmd.run()
-            waitForEnter()
-            return true
-        case 3:
-            print("  Search query: ", terminator: "")
+            print("  Search what? Try \(PINK)docs tax ~/Documents\(RESET) or \(PINK)apps xcode\(RESET): piggy search ", terminator: "")
             fflush(stdout)
             if let query = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !query.isEmpty {
-                let searchCmd = Search.parseOrExit([query])
+                let searchCmd = Search.parseOrExit(splitCommandLine(query))
                 try? searchCmd.run()
                 waitForEnter()
             } else {
                 print("  🐽 No problem. Piggy did not do anything.\n")
             }
             return true
-        case 4:
-            print("  App name or bundle ID: ", terminator: "")
+        case 3:
+            print("  Where should Piggy draw the stye? \(PINK)(blank = this folder)\(RESET): ", terminator: "")
             fflush(stdout)
-            if let name = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
-                let infoCmd = Info.parseOrExit([name])
-                try? infoCmd.run()
-                waitForEnter()
-            } else {
-                print("  🐽 No problem. Piggy did not do anything.\n")
-            }
+            let raw = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let styeCmd = Stye.parseOrExit(raw.isEmpty ? [] : splitCommandLine(raw))
+            try? styeCmd.run()
+            waitForEnter()
+            return true
+        case 4:
+            let sniffCmd = Sniff.parseOrExit(["apps"])
+            try? sniffCmd.run()
+            waitForEnter()
             return true
         case 5:
-            let exportCmd = Export.parseOrExit([])
-            try? exportCmd.run()
+            printHelp()
             waitForEnter()
             return true
         case 6:
@@ -281,7 +277,7 @@ enum SplashMenu {
 
         Banner.printBanner()
 
-        let title = " choose a gentle Piggy trail "
+        let title = " choose what Piggy should show you "
         print("\(pad)\(BORDER)╭\(PINK)\(title)\(BORDER)\(String(repeating: "─", count: max(0, boxW - visibleLength(title))))╮\(RESET)")
         printBoxLine("", width: boxW, pad: pad)
 
@@ -300,6 +296,7 @@ enum SplashMenu {
 
         printBoxLine("", width: boxW, pad: pad)
         printBoxLine("  \(MAUVE)↑↓\(RESET) move   \(MAUVE)↵\(RESET) choose   \(MAUVE)1-7\(RESET) quick pick   \(MAUVE)q\(RESET) leave   \(MAUVE)h\(RESET) help", width: boxW, pad: pad)
+        printBoxLine("  \(DIM)piggy [action] [what] [where]  •  what = apps/imgs/vids/docs\(RESET)", width: boxW, pad: pad)
         print("\(pad)\(BORDER)╰\(String(repeating: "─", count: boxW))╯\(RESET)")
         print("")
         print("\(pad)\(DIM)type a command, or pick a trail above:\(RESET) ", terminator: "")
@@ -375,6 +372,7 @@ enum SplashMenu {
         print("Architecture: piggy [action] [what] [where]")
         print("Actions: sniff, snort, search, stye")
         print("What: apps, imgs, vids, docs")
+        print("Promise: looks first; no surprise deletes")
         print("")
         print("Try:")
         print("  piggy sniff")
@@ -408,6 +406,41 @@ enum SplashMenu {
         print("    piggy stye ~/Downloads              Show the pigsty shape")
         print("    piggy delete \"Slack\"                Ask before moving an app to Trash")
         print("")
+    }
+
+    private static func splitCommandLine(_ input: String) -> [String] {
+        var words: [String] = []
+        var current = ""
+        var quote: Character?
+        var escaping = false
+
+        for ch in input {
+            if escaping {
+                current.append(ch)
+                escaping = false
+                continue
+            }
+            if ch == "\\" {
+                escaping = true
+                continue
+            }
+            if ch == "\"" || ch == "'" {
+                if quote == ch { quote = nil }
+                else if quote == nil { quote = ch }
+                else { current.append(ch) }
+                continue
+            }
+            if ch.isWhitespace && quote == nil {
+                if !current.isEmpty {
+                    words.append(current)
+                    current = ""
+                }
+                continue
+            }
+            current.append(ch)
+        }
+        if !current.isEmpty { words.append(current) }
+        return words
     }
 
     // MARK: - Helpers

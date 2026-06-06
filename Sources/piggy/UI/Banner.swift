@@ -14,43 +14,43 @@ enum Banner {
 
     static let art = #"""
 \#(dim)╭────────────────────────────────────────────────────────────────────────╮
-\#(pink)│  ██████╗ ██╗ ██████╗  ██████╗ ██╗   ██╗   \#(blush)friendly Mac tidy helper\#(dim)     │
-\#(pink)│  ██╔══██╗██║██╔════╝ ██╔════╝ ╚██╗ ██╔╝   \#(mauve)look • weigh • explain\#(dim)        │
+\#(pink)│  ██████╗ ██╗ ██████╗  ██████╗ ██╗   ██╗   \#(blush)show me the Mac pile\#(dim)         │
+\#(pink)│  ██╔══██╗██║██╔════╝ ██╔════╝ ╚██╗ ██╔╝   \#(mauve)sniff • snort • stye\#(dim)         │
 \#(pink)│  ██████╔╝██║██║  ███╗██║  ███╗ ╚████╔╝                                 │
-\#(pink)│  ██╔═══╝ ██║██║   ██║██║   ██║  ╚██╔╝        \#(bold)\#(pink)NO SURPRISE DELETES\#(reset)\#(dim)       │
-\#(pink)│  ██║     ██║╚██████╔╝╚██████╔╝   ██║                                    │
-\#(pink)│  ╚═╝     ╚═╝ ╚═════╝  ╚═════╝    ╚═╝                                    │
+\#(pink)│  ██╔═══╝ ██║██║   ██║██║   ██║  ╚██╔╝        \#(bold)\#(pink)LOOKS FIRST, NO TRASH\#(reset)\#(dim)     │
+\#(pink)│  ██║     ██║╚██████╔╝╚██████╔╝   ██║                                   │
+\#(pink)│  ╚═╝     ╚═╝ ╚═════╝  ╚═════╝    ╚═╝                                   │
 \#(dim)│                                                                        │
-\#(mauve)│         .-""""""""-.           \#(dim)╭───────╮\#(mauve)        \#(blush)fat apps\#(mauve)           │
-\#(mauve)│       .'   \#(blush)o\#(mauve)      \#(blush)o\#(mauve)   '.         \#(dim)│  GB   │\#(mauve)        \#(blush)old helpers\#(mauve)       │
-\#(mauve)│      /        \#(blush)(oo)\#(mauve)       \       \#(dim)╰───┬───╯\#(mauve)        \#(blush)big folders\#(mauve)       │
-\#(mauve)│     |      .-.___.-.      |          \#(dim)│\#(mauve)                           │
-\#(mauve)│      \       \#(blush)'---'\#(mauve)       /          \#(dim)│\#(mauve)      \#(pink)sniff first, ask before trash\#(mauve) │
-\#(mauve)│       '._             _.'         \#(dim)▄┴▄\#(mauve)                          │
-\#(dim)│             \#(blush)╰─ gentle terminal playground for finding space ─╯\#(dim)      │
+\#(mauve)│         .-""""""""-.           \#(dim)╭───────╮\#(mauve)        \#(blush)apps / imgs\#(mauve)            │
+\#(mauve)│       .'   \#(blush)o\#(mauve)      \#(blush)o\#(mauve)   '.         \#(dim)│  GB   │\#(mauve)        \#(blush)vids / docs\#(mauve)          │
+\#(mauve)│      /        \#(blush)(oo)\#(mauve)       \       \#(dim)╰───┬───╯\#(mauve)        \#(blush)stye map\#(mauve)             │
+\#(mauve)│     |      .-.___.-.      |          \#(dim)│\#(mauve)                                 │
+\#(mauve)│     \       \#(blush)'---'\#(mauve)       /          \#(dim)│\#(mauve)      \#(pink)piggy [action] [what] [where]\#(mauve)│
+\#(mauve)│       '._             _.'         \#(dim)▄┴▄\#(mauve)                                  │
+\#(dim)│             \#(blush)╰─ show me the shit on my Mac — easy to see ─╯\#(dim)             │
 \#(dim)╰────────────────────────────────────────────────────────────────────────╯\#(reset)
 
 """#
 
     static let mini = #"""
 \#(pink) ██████╗ ██╗ ██████╗  ██████╗ ██╗   ██╗
-\#(pink) ██╔══██╗██║██╔════╝ ██╔════╝ ╚██╗ ██╔╝   \#(blush)friendly Mac tidy helper\#(reset)
-\#(pink) ██████╔╝██║██║  ███╗██║  ███╗ ╚████╔╝    \#(mauve)look • weigh • explain\#(reset)
+\#(pink) ██╔══██╗██║██╔════╝ ██╔════╝ ╚██╗ ██╔╝   \#(blush)show me the Mac pile\#(reset)
+\#(pink) ██████╔╝██║██║  ███╗██║  ███╗ ╚████╔╝    \#(mauve)sniff • snort • stye\#(reset)
 \#(pink) ██╔═══╝ ██║██║   ██║██║   ██║  ╚██╔╝
-\#(pink) ██║     ██║╚██████╔╝╚██████╔╝   ██║      \#(pink)no surprise deletes\#(reset)
+\#(pink) ██║     ██║╚██████╔╝╚██████╔╝   ██║      \#(pink)looks first, no trash\#(reset)
 \#(pink) ╚═╝     ╚═╝ ╚═════╝  ╚═════╝    ╚═╝
 \#(mauve)        .-""""-.
-\#(mauve)      .' \#(blush)o\#(mauve)  \#(blush)o\#(mauve) '.     \#(dim)fat apps • big folders\#(reset)
-\#(mauve)     /    \#(blush)(oo)\#(mauve)   \    \#(dim)sniff first, ask before trash\#(reset)
+\#(mauve)      .' \#(blush)o\#(mauve)  \#(blush)o\#(mauve) '.     \#(dim)apps/imgs/vids/docs\#(reset)
+\#(mauve)     /    \#(blush)(oo)\#(mauve)   \    \#(dim)piggy [action] [what] [where]\#(reset)
 \#(mauve)     \   \#(blush)'---'\#(mauve)   /
 \#(mauve)      '.___.__.'
 
 """#
 
     static let micro = #"""
-\#(pink)  PIGGY\#(reset)  \#(dim)friendly Mac tidy helper\#(reset)
-\#(mauve)  .-""-.   \#(dim)looks, weighs, explains\#(reset)
-\#(mauve) ( \#(blush)o\#(mauve)  \#(blush)o\#(mauve) )  \#(pink)no surprise deletes\#(reset)
+\#(pink)  PIGGY\#(reset)  \#(dim)show me the Mac pile\#(reset)
+\#(mauve)  .-""-.   \#(dim)sniff, snort, stye\#(reset)
+\#(mauve) ( \#(blush)o\#(mauve)  \#(blush)o\#(mauve) )  \#(pink)looks first, no trash\#(reset)
 \#(mauve)  ( \#(blush)oo\#(mauve) )
 
 """#
@@ -214,8 +214,8 @@ enum Spinner {
         }
 
         let frame = scanFrames[index % scanFrames.count]
-        var lines = frame.map { "  \(mauve)\($0)\(reset) \(dim)searching /Applications\(reset)" }
-        lines.append("  \(bold)\(pink)PIGGY\(reset)  [\(bar)] \(blush)\(current)/\(total)\(reset)  \(mauve)\(shortName)\(reset)")
+        var lines = frame.map { "  \(mauve)\($0)\(reset) \(dim)sniffing the Mac pile\(reset)" }
+        lines.append("  \(bold)\(pink)PIGGY\(reset)  [\(bar)] \(blush)\(current)/\(total)\(reset)  \(mauve)\(shortName)\(reset)  \(dim)looks first\(reset)")
         return lines
     }
 }
