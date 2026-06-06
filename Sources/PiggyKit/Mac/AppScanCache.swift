@@ -9,7 +9,8 @@ public enum AppScanCache {
     }
 
     private static let version = 1
-    private static let defaultMaxAge: TimeInterval = 10 * 60
+    public static let defaultMaxAge: TimeInterval = 24 * 60 * 60
+    public static let fallbackMaxAge: TimeInterval = 7 * 24 * 60 * 60
 
     public static var cacheURL: URL {
         let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
@@ -18,11 +19,25 @@ public enum AppScanCache {
     }
 
     public static func loadIfFresh() -> [AppInfo]? {
+        loadIfFresh(maxAge: defaultMaxAge)
+    }
+
+    public static func loadIfFresh(maxAge: TimeInterval) -> [AppInfo]? {
         loadIfFresh(
             from: cacheURL,
             sourceDirectoryModificationDates: sourceDirectoryModificationDates(),
             now: Date(),
-            maxAge: defaultMaxAge
+            maxAge: maxAge
+        )
+    }
+
+    public static func loadFallback() -> [AppInfo]? {
+        load(
+            from: cacheURL,
+            sourceDirectoryModificationDates: sourceDirectoryModificationDates(),
+            now: Date(),
+            maxAge: fallbackMaxAge,
+            requireSourceDates: false
         )
     }
 
@@ -32,11 +47,27 @@ public enum AppScanCache {
         now: Date,
         maxAge: TimeInterval
     ) -> [AppInfo]? {
+        load(
+            from: url,
+            sourceDirectoryModificationDates: expectedSourceDates,
+            now: now,
+            maxAge: maxAge,
+            requireSourceDates: true
+        )
+    }
+
+    public static func load(
+        from url: URL,
+        sourceDirectoryModificationDates expectedSourceDates: [String: Date],
+        now: Date,
+        maxAge: TimeInterval,
+        requireSourceDates: Bool
+    ) -> [AppInfo]? {
         guard let data = try? Data(contentsOf: url),
               let payload = try? JSONDecoder().decode(Payload.self, from: data),
               payload.version == version,
               now.timeIntervalSince(payload.createdAt) <= maxAge,
-              payload.sourceDirectoryModificationDates == expectedSourceDates
+              !requireSourceDates || payload.sourceDirectoryModificationDates == expectedSourceDates
         else {
             return nil
         }

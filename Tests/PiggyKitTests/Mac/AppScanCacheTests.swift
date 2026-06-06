@@ -58,6 +58,28 @@ final class AppScanCacheTests: XCTestCase {
         XCTAssertNil(loaded)
     }
 
+    func testFallbackCanLoadRecentCacheEvenWhenSourceDatesChanged() throws {
+        let cacheURL = try makeTemporaryCacheURL()
+        let createdAt = Date(timeIntervalSince1970: 1_000)
+
+        AppScanCache.save(
+            [makeApp(name: "Fallback")],
+            to: cacheURL,
+            sourceDirectoryModificationDates: ["/Applications": Date(timeIntervalSince1970: 900)],
+            now: createdAt
+        )
+
+        let loaded = AppScanCache.load(
+            from: cacheURL,
+            sourceDirectoryModificationDates: ["/Applications": Date(timeIntervalSince1970: 950)],
+            now: createdAt.addingTimeInterval(60),
+            maxAge: 600,
+            requireSourceDates: false
+        )
+
+        XCTAssertEqual(loaded?.map(\.displayName), ["Fallback"])
+    }
+
     private func makeTemporaryCacheURL() throws -> URL {
         let root = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("PiggyAppScanCacheTests")

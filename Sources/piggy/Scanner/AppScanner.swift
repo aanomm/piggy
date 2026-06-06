@@ -67,7 +67,6 @@ enum AppScanner {
 
         let purpose = plistDescription
             ?? PurposeLookup.purpose(for: bundleID)
-            ?? spotlightPurpose(for: bundleID)
             ?? categoryLabel(categoryType)
             ?? genreLabel(genres)
 
@@ -77,7 +76,7 @@ enum AppScanner {
         let creationDate = attrs?[.creationDate] as? Date
         let modificationDate = attrs?[.modificationDate] as? Date
 
-        let lastUsedDate = getLastUsedDate(for: bundleID ?? "")
+        let lastUsedDate: Date? = nil
 
         let arch = CodeSignChecker.detectArchitecture(appPath: url)
         let appleSigned = CodeSignChecker.isAppleSigned(appPath: url)
@@ -142,39 +141,6 @@ enum AppScanner {
         )
     }
 
-    private static func getLastUsedDate(for bundleID: String) -> Date? {
-        let task = Process()
-        task.launchPath = "/usr/bin/mdls"
-        task.arguments = [
-            "-raw",
-            "-name", "kMDItemLastUsedDate",
-            "-name", "kMDItemContentCreationDate",
-        ]
-
-        let query = "kMDItemCFBundleIdentifier == '\(bundleID)'"
-        task.arguments?.append(query)
-
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = FileHandle.nullDevice
-
-        do {
-            try task.run()
-            task.waitUntilExit()
-        } catch {
-            return nil
-        }
-
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        guard task.terminationStatus == 0,
-              let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !output.isEmpty, output != "(null)"
-        else { return nil }
-
-        let formatter = ISO8601DateFormatter()
-        return formatter.date(from: output)
-    }
-
     static func singleApp(at path: String) -> AppInfo? {
         let url = URL(fileURLWithPath: path)
         let resolved: AppInfo.SourceDirectory
@@ -189,25 +155,6 @@ enum AppScanner {
         }
 
         return parseApp(at: url, source: resolved, agents: AgentScanner.scanAllAgents())
-    }
-
-    private static func spotlightPurpose(for bundleID: String?) -> String? {
-        guard let bid = bundleID, !bid.isEmpty else { return nil }
-        let task = Process()
-        task.launchPath = "/usr/bin/mdls"
-        task.arguments = ["-raw", "-name", "kMDItemDescription"]
-        let query = "kMDItemCFBundleIdentifier == '\(bid)'"
-        task.arguments?.append(query)
-
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = FileHandle.nullDevice
-        do { try task.run(); task.waitUntilExit() } catch { return nil }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        guard task.terminationStatus == 0,
-              let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !output.isEmpty, output != "(null)" else { return nil }
-        return String(output.prefix(120))
     }
 
     private static func categoryLabel(_ catType: String?) -> String? {

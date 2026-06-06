@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 import ArgumentParser
 import PiggyKit
 
@@ -33,6 +34,24 @@ func scannedApps(useDiskCache: Bool = true, activity: String = "sniff") -> [AppI
         return cached
     }
 
+    let scanLock = AppScanFileLock()
+    let didAcquireScanLock = scanLock.acquire()
+    if !didAcquireScanLock {
+        fputs("🐽 Another Piggy app scan is already warming the cache. Waiting instead of starting a second CPU-heavy scan...\n", stderr)
+        if let cached = waitForAppScanCache(maxSeconds: 120) {
+            _cachedApps = cached
+            return cached
+        }
+        if useDiskCache, let fallback = AppScanCache.loadFallback() {
+            fputs("🐽 Piggy used a recent app cache while the other scan keeps working.\n", stderr)
+            _cachedApps = fallback
+            return fallback
+        }
+        fputs("🐽 Piggy skipped this app scan because another one is still running. Try again in a minute.\n", stderr)
+        return []
+    }
+    defer { scanLock.release() }
+
     var apps: [AppInfo] = []
     let indicator = TerminalActivityIndicator(action: "Piggy is \(piggyActivityGerund(activity)) through \"apps\"", doneLabel: piggyActivityDoneLabel(activity))
     indicator.start("Applications folders")
@@ -44,6 +63,89 @@ func scannedApps(useDiskCache: Bool = true, activity: String = "sniff") -> [AppI
     _cachedApps = apps
     AppScanCache.save(apps)
     return apps
+}
+
+private func waitForAppScanCache(maxSeconds: TimeInterval) -> [AppInfo]? {
+    let deadline = Date().addingTimeInterval(maxSeconds)
+    while Date() < deadline {
+        if let cached = AppScanCache.loadIfFresh(maxAge: AppScanCache.defaultMaxAge) {
+            return cached
+        }
+        Thread.sleep(forTimeInterval: 0.5)
+    }
+    return nil
+}
+
+private final class AppScanFileLock {
+    private let lockURL: URL
+    private let staleAfter: TimeInterval = 10 * 60
+
+    init() {
+        lockURL = AppScanCache.cacheURL
+            .deletingLastPathComponent()
+            .appendingPathComponent("apps-scan.lock", isDirectory: true)
+    }
+
+    func acquire() -> Bool {
+        try? FileManager.default.createDirectory(
+            at: lockURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+
+        if createLockDirectory() {
+            writeMetadata()
+            return true
+        }
+
+        if isStale {
+            try? FileManager.default.removeItem(at: lockURL)
+            if createLockDirectory() {
+                writeMetadata()
+                return true
+            }
+        }
+
+        return false
+    }
+
+    func release() {
+        try? FileManager.default.removeItem(at: lockURL)
+    }
+
+    private func createLockDirectory() -> Bool {
+        mkdir(lockURL.path, 0o755) == 0
+    }
+
+    private var isStale: Bool {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: lockURL.path),
+              let modified = attrs[.modificationDate] as? Date else {
+            return true
+        }
+
+        if let pid = readLockPID(), pid > 0, kill(pid, 0) == -1, errno == ESRCH {
+            return true
+        }
+        return Date().timeIntervalSince(modified) > staleAfter
+    }
+
+    private func writeMetadata() {
+        let body = "pid=\(getpid())\ncreatedAt=\(Date().timeIntervalSince1970)\n"
+        try? body.write(
+            to: lockURL.appendingPathComponent("owner"),
+            atomically: true,
+            encoding: .utf8
+        )
+    }
+
+    private func readLockPID() -> pid_t? {
+        guard let body = try? String(contentsOf: lockURL.appendingPathComponent("owner"), encoding: .utf8) else {
+            return nil
+        }
+        for line in body.split(separator: "\n") where line.hasPrefix("pid=") {
+            return pid_t(line.dropFirst(4))
+        }
+        return nil
+    }
 }
 
 // MARK: - snort
