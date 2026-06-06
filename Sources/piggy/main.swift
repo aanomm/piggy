@@ -21,6 +21,7 @@ struct Mac: ParsableCommand {
         commandName: "mac",
         abstract: "Sniff around your Mac apps.",
         discussion: "These commands help Piggy list apps, explain space use, and export app data for review.",
+        shouldDisplay: false,
         subcommands: [Audit.self, Snort.self, List.self, Info.self, Delete.self, Search.self, Export.self],
         defaultSubcommand: List.self
     )

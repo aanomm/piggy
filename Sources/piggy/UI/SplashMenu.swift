@@ -18,10 +18,10 @@ private func handleSplashInterrupt(_ signalNumber: Int32) {
 }
 
 private let MENU_ITEMS: [(String, String, String)] = [
-    ("1", "Sniff",   "quick overview — biggest stuff first"),
-    ("2", "Snort",   "deeper look with more detail"),
-    ("3", "Search",  "find apps, imgs, vids, docs"),
-    ("4", "Stye",    "show the pigsty map for a folder"),
+    ("1", "sniff",  "quick overview; biggest first"),
+    ("2", "snort",  "deeper detail"),
+    ("3", "search", "find apps / imgs / vids / docs"),
+    ("4", "stye",   "map a folder"),
 ]
 
 enum SplashMenu {
@@ -228,14 +228,9 @@ enum SplashMenu {
     private static let DIM = TerminalStyle.ansi("2", stdoutIsTTY: true)
     private static let BOLD = TerminalStyle.ansi("1", stdoutIsTTY: true)
     private static let RESET = TerminalStyle.ansi("0", stdoutIsTTY: true)
-    private static let BLUE = TerminalStyle.ansi("38;5;33", stdoutIsTTY: true)
     private static let WHITE = TerminalStyle.ansi("38;5;255", stdoutIsTTY: true)
-    private static let GRAY = TerminalStyle.ansi("38;5;240", stdoutIsTTY: true)
     private static let PINK = TerminalStyle.ansi("38;5;211", stdoutIsTTY: true)
     private static let MAUVE = TerminalStyle.ansi("38;5;175", stdoutIsTTY: true)
-    private static let SELECT_BG = TerminalStyle.ansi("48;5;53", stdoutIsTTY: true)
-    private static let SELECT_FG = TerminalStyle.ansi("38;5;255", stdoutIsTTY: true)
-    private static let SEP = TerminalStyle.ansi("38;5;238", stdoutIsTTY: true)
     private static let BORDER = TerminalStyle.ansi("38;5;240", stdoutIsTTY: true)
 
     private static func render(selectedIndex: Int, isFirstRender: Bool) {
@@ -243,35 +238,45 @@ enum SplashMenu {
         fflush(stdout)
 
         let w = Banner.currentTerminalWidth()
-        let boxW = min(74, max(44, w - 4))
+        let boxW = min(76, max(44, w - 4))
         let pad = "  "
 
-        Banner.printBanner()
-
-        let title = " choose what Piggy should show you "
-        print("\(pad)\(BORDER)╭\(PINK)\(title)\(BORDER)\(String(repeating: "─", count: max(0, boxW - visibleLength(title))))╮\(RESET)")
+        printTopBorder(width: boxW, pad: pad)
+        printBoxLine("  \(PINK)Show me the shit on my Mac\(RESET) \(DIM)— and make it easy to see.\(RESET)", width: boxW, pad: pad)
         printBoxLine("", width: boxW, pad: pad)
 
         for (idx, item) in MENU_ITEMS.enumerated() {
             let (num, label, desc) = item
-            let labelField = label.padding(toLength: 9, withPad: " ", startingAt: 0)
+            let labelField = label.padding(toLength: 8, withPad: " ", startingAt: 0)
 
             if idx == selectedIndex {
-                let row = "  ▸  \(num)  \(labelField)  \(desc)"
-                printBoxLine(SELECT_BG + SELECT_FG + padVisible(row, width: boxW) + RESET, width: boxW, pad: pad)
+                let prefix = "  ▸  \(num)  \(labelField) "
+                let clippedDesc = fitPlain(desc, width: max(0, boxW - prefix.count))
+                let row = "  \(PINK)▸\(RESET)  \(PINK)\(num)\(RESET)  \(BOLD)\(WHITE)\(labelField)\(RESET) \(WHITE)\(clippedDesc)\(RESET)"
+                printBoxLine(row, width: boxW, pad: pad)
             } else {
-                let row = "     \(PINK)\(num)\(RESET)  \(BOLD)\(WHITE)\(labelField)\(RESET)  \(DIM)\(desc)\(RESET)"
+                let prefix = "     \(num)  \(labelField) "
+                let clippedDesc = fitPlain(desc, width: max(0, boxW - prefix.count))
+                let row = "     \(MAUVE)\(num)\(RESET)  \(WHITE)\(labelField)\(RESET) \(DIM)\(clippedDesc)\(RESET)"
                 printBoxLine(row, width: boxW, pad: pad)
             }
         }
 
         printBoxLine("", width: boxW, pad: pad)
-        printBoxLine("  \(MAUVE)↑↓\(RESET) move   \(MAUVE)↵\(RESET) choose   \(MAUVE)1-4\(RESET) quick pick   \(MAUVE)q\(RESET) leave   \(MAUVE)h\(RESET) help", width: boxW, pad: pad)
-        printBoxLine("  \(DIM)piggy [action] [what] [where]  •  what = apps/imgs/vids/docs\(RESET)", width: boxW, pad: pad)
+        printBoxLine("  \(DIM)piggy [action] [what] [where]   what: apps imgs vids docs\(RESET)", width: boxW, pad: pad)
+        printBoxLine("  \(DIM)looks first; no surprise trash\(RESET)", width: boxW, pad: pad)
+        printBoxLine("", width: boxW, pad: pad)
+        printBoxLine("  \(MAUVE)↑↓\(RESET) move   \(MAUVE)↵\(RESET) choose   \(MAUVE)1-4\(RESET) pick   \(MAUVE)h\(RESET) help   \(MAUVE)q\(RESET) leave", width: boxW, pad: pad)
         print("\(pad)\(BORDER)╰\(String(repeating: "─", count: boxW))╯\(RESET)")
         print("")
-        print("\(pad)\(DIM)type a command, or pick a trail above:\(RESET) ", terminator: "")
         fflush(stdout)
+    }
+
+    private static func printTopBorder(width: Int, pad: String) {
+        let title = " PIGGY "
+        let face = " (oo) "
+        let fill = String(repeating: "─", count: max(0, width - visibleLength(title) - visibleLength(face)))
+        print("\(pad)\(BORDER)╭\(PINK)\(title)\(BORDER)\(fill)\(MAUVE)\(face)\(BORDER)╮\(RESET)")
     }
 
     private static func printBoxLine(_ text: String, width: Int, pad: String) {
@@ -280,6 +285,12 @@ enum SplashMenu {
 
     private static func padVisible(_ text: String, width: Int) -> String {
         text + String(repeating: " ", count: max(0, width - visibleLength(text)))
+    }
+
+    private static func fitPlain(_ text: String, width: Int) -> String {
+        guard text.count > width else { return text }
+        guard width > 1 else { return String(text.prefix(max(0, width))) }
+        return String(text.prefix(width - 1)) + "…"
     }
 
     private static func visibleLength(_ text: String) -> Int {

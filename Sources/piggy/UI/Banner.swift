@@ -15,31 +15,18 @@ enum Banner {
     static let art = #"""
 \#(dim)╭────────────────────────────────────────────────────────────────────────╮
 \#(pink)│  PIGGY                                                   \#(blush)(oo)\#(pink)          │
-\#(pink)│  Show me the shit on my Mac - and make it easy to see.                 │
-\#(dim)│                                                                        │
-\#(mauve)│  sniff   quick overview - biggest stuff first                          │
-\#(mauve)│  snort   deeper look with more detail                                  │
-\#(mauve)│  search  find apps / imgs / vids / docs                                │
-\#(mauve)│  stye    visual pigsty map                                             │
-\#(dim)│                                                                        │
-\#(blush)│  Grammar: piggy [action] [what] [where]                                │
-\#(blush)│  What:    apps / imgs / vids / docs                                    │
-\#(pink)│  Safety:  looks first, no surprise trash                               │
+\#(pink)│  Show me the shit on my Mac — and make it easy to see.                 │
 \#(dim)╰────────────────────────────────────────────────────────────────────────╯\#(reset)
 
 """#
 
     static let mini = #"""
-\#(pink) PIGGY\#(reset)  \#(dim)Show me the shit on my Mac - easy to see.\#(reset)
-\#(mauve) sniff / snort / search / stye\#(reset)
-\#(blush) apps / imgs / vids / docs   \#(pink)looks first, no surprise trash\#(reset)
+\#(pink) PIGGY\#(reset)  \#(dim)Show me the shit on my Mac — easy to see.\#(reset)
 
 """#
 
     static let micro = #"""
-\#(pink) PIGGY\#(reset)  \#(dim)sniff / snort / stye\#(reset)
-\#(mauve) apps imgs vids docs\#(reset)
-\#(pink) looks first, no trash\#(reset)
+\#(pink) PIGGY\#(reset)  \#(dim)easy to see\#(reset)
 
 """#
 

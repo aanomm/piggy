@@ -6,7 +6,8 @@ struct Folders: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "folders",
         abstract: "Show which folders are taking up the most space.",
-        discussion: "Piggy looks inside one folder, weighs the folders inside it, and shows the biggest ones first. Piggy does not change anything."
+        discussion: "Piggy looks inside one folder, weighs the folders inside it, and shows the biggest ones first. Piggy does not change anything.",
+        shouldDisplay: false
     )
 
     @Argument(help: "Root folder to inspect. Defaults to the current directory.")
@@ -187,7 +188,8 @@ struct Folders: ParsableCommand {
 struct Folder: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "folder",
-        abstract: "Alias for `piggy folders`"
+        abstract: "Alias for `piggy folders`",
+        shouldDisplay: false
     )
 
     @Argument(help: "Root folder to inspect. Defaults to the current directory.")

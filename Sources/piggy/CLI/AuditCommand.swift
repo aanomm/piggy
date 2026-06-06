@@ -4,7 +4,8 @@ import PiggyKit
 
 struct Audit: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Let Piggy look over your apps and explain the biggest space gobblers."
+        abstract: "Let Piggy look over your apps and explain the biggest space gobblers.",
+        shouldDisplay: false
     )
 
     @Option(name: .shortAndLong, help: "Number of largest apps to show")

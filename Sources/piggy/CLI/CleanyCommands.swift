@@ -47,7 +47,7 @@ struct Snort: ParsableCommand {
 // MARK: - list
 
 struct List: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Show the app pile Piggy found")
+    static let configuration = CommandConfiguration(abstract: "Show the app pile Piggy found", shouldDisplay: false)
 
     @Option(name: .long, help: "Sort key: size, name, created, modified, used, arch, version, store, agents")
     var sort: String = "size"
@@ -231,7 +231,7 @@ struct List: ParsableCommand {
 // MARK: - info
 
 struct Info: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Ask Piggy to explain one app")
+    static let configuration = CommandConfiguration(abstract: "Ask Piggy to explain one app", shouldDisplay: false)
 
     @Argument(help: "App name or bundle identifier")
     var app: String
@@ -333,7 +333,7 @@ struct Info: ParsableCommand {
 // MARK: - delete
 
 struct Delete: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Move an app to the Mac Trash after Piggy asks you")
+    static let configuration = CommandConfiguration(abstract: "Move an app to the Mac Trash after Piggy asks you", shouldDisplay: false)
 
     @Argument(help: "App name or Mac app ID")
     var app: String
@@ -635,7 +635,7 @@ struct Orphans: ParsableCommand {
 // MARK: - export
 
 struct Export: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "Let Piggy pack the app list into CSV or JSON")
+    static let configuration = CommandConfiguration(abstract: "Let Piggy pack the app list into CSV or JSON", shouldDisplay: false)
 
     @Option(name: .shortAndLong, help: "Output format: csv or json")
     var format: String = "csv"
